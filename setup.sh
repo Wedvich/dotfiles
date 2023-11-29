@@ -127,6 +127,8 @@ configure_git() {
     echo "⚠️ \\033[33m$1\\033[0m"
   }
 
+  git config --global --get-all include.path | grep -q "$HOME/.gitconfig_dotfile" || git config --global --add include.path "$HOME/.gitconfig_dotfile"
+
   if [ -z "$(git config --global --includes user.name)" ]; then
     show_configure_git_message
     show_configure_git_warning "name is missing"
