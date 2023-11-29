@@ -2,7 +2,7 @@
 
 set -e
 
-DOTFILES=$(realpath -s "$0")
+DOTFILES=$(realpath "$0")
 DOTFILES_PATH=$(dirname "$DOTFILES")
 
 link_dotfiles() {
@@ -45,10 +45,10 @@ install_homebrew() {
 install_tmux() {
   if command -v tmux >/dev/null; then
     return
-  elif [[ "$OSTYPE" == "linux-gnu" ]]; then
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Installing tmux..."
     sudo apt install -y tmux
-  elif [[ "$OSTYPE" == "Darwin" ]]; then
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Installing tmux..."
     brew install tmux
   else
@@ -87,10 +87,10 @@ install_zsh_plugins() {
 install_starship() {
   if command -v starship >/dev/null; then
     return
-  elif [[ "$OSTYPE" == "linux-gnu" ]]; then
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Installing starship..."
     curl -sS https://starship.rs/install.sh | sh
-  elif [[ "$OSTYPE" == "Darwin" ]]; then
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Installing starship..."
     brew install starship
   else
@@ -124,7 +124,7 @@ configure_git() {
   }
 
   show_configure_git_warning() {
-    echo "⚠️ \\033[33m$1\\033[0m"
+    echo "🔔 \\033[33m$1\\033[0m"
   }
 
   git config --global --get-all include.path | grep -q "$HOME/.gitconfig_dotfile" || git config --global --add include.path "$HOME/.gitconfig_dotfile"
@@ -145,6 +145,10 @@ configure_git() {
     show_configure_git_message
     show_configure_git_warning "signingkey is missing"
     has_missing=true
+  fi
+
+  if [ $has_missing = false ]; then
+    echo "✅ Git config is valid"
   fi
 }
 

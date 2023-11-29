@@ -1,5 +1,5 @@
 # Create or attach to tmux session if not already in one
-if ! { [ "$TERM" = "screen" ] && [ -n "$TMUX" ]; } then
+if ! { [[ "$TERM" == "screen"* ]] && [ -n "$TMUX" ]; } then
   tmux new -As0
 fi
 
