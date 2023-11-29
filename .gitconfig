@@ -1,0 +1,21 @@
+[include]
+  path = ~/.gitconfig.local
+
+[init]
+  defaultBranch = main
+
+[core]
+  autocrlf = input
+  editor = code --wait
+
+[push]
+  autoSetupRemote = true
+
+[gpg]
+  format = ssh
+
+[commit]
+  gpgsign = true
+
+[alias]
+  prune = 'git remote update --prune && git branch -vv | awk "/: gone]/{print $1}" | xargs git branch -d'
