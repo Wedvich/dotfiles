@@ -82,6 +82,11 @@ install_zsh_plugins() {
     show_install_zsh_plugins_message
     git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting.git "$zsh/zsh-syntax-highlighting"
   fi
+
+  if [ ! -d "$zsh/zsh-z" ]; then
+    show_install_zsh_plugins_message
+    git clone --depth 1 https://github.com/agkozak/zsh-z.git "$zsh/zsh-z"
+  fi
 }
 
 install_starship() {
