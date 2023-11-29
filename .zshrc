@@ -14,6 +14,9 @@ if [[ $(uname -r) == *WSL2* ]]; then
   }
 fi
 
+# Aliases
+alias ls="eza"
+
 # History
 setopt extended_history       # record timestamp of command in HISTFILE
 setopt hist_expire_dups_first # delete duplicates first when HISTFILE size exceeds HISTSIZE
@@ -38,6 +41,9 @@ zle -N down-line-or-beginning-search
 bindkey "^[[A" up-line-or-beginning-search # Up
 bindkey "^[[B" down-line-or-beginning-search # Down
 autoload -U compinit; compinit
+
+# Rust
+source "$HOME/.cargo/env"
 
 # Init Starship prompt
 eval "$(starship init zsh)"

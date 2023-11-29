@@ -32,7 +32,7 @@ link_dotfiles() {
 }
 
 install_homebrew() {
-  if [[ "$OSTYPE" != "Darwin" ]]; then
+  if [[ "$OSTYPE" != "darwin"* ]]; then
     return
   fi
 
@@ -118,6 +118,24 @@ install_themes() {
   fi
 }
 
+install_rust() {
+  if command -v rustup >/dev/null; then
+    return
+  fi
+
+  echo "Installing Rust..."
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
+}
+
+install_eza() {
+  if command -v eza >/dev/null; then
+    return
+  fi
+
+  echo "Installing eza..."
+  cargo install eza
+}
+
 configure_git() {
   local has_shown_message=false
   local has_missing=false
@@ -159,6 +177,8 @@ main() {
   install_zsh_plugins
   install_starship
   install_themes
+  install_rust
+  install_eza
 
   configure_git
 
