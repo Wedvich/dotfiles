@@ -129,23 +129,15 @@ configure_git() {
 
   git config --global --get-all include.path | grep -q "$HOME/.gitconfig_dotfile" || git config --global --add include.path "$HOME/.gitconfig_dotfile"
 
-  if [ -z "$(git config --global --includes user.name)" ]; then
-    show_configure_git_message
-    show_configure_git_warning "name is missing"
-    has_missing=true
-  fi
+  local keys=(user.name user.email user.signingkey gpg.ssh.program)
 
-  if [ -z "$(git config --global --includes user.email)" ]; then
-    show_configure_git_message
-    show_configure_git_warning "email is missing"
-    has_missing=true
-  fi
-
-  if [ -z "$(git config --global --includes user.signingkey)" ]; then
-    show_configure_git_message
-    show_configure_git_warning "signingkey is missing"
-    has_missing=true
-  fi
+  for i in "${keys[@]}"; do
+    if [ -z "$(git config --global --includes $i)" ]; then
+      show_configure_git_message
+      show_configure_git_warning "$i is missing"
+      has_missing=true
+    fi
+  done
 
   if [ $has_missing = false ]; then
     echo "✅ Git config is valid"
