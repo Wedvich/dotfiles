@@ -15,6 +15,7 @@ link_dotfiles() {
   }
 
   local files=($(find "$DOTFILES_PATH" -maxdepth 1 -name '.*' -type f -not -name '.DS_Store'))
+  files+="$DOTFILES_PATH/starship.toml"
 
   for i in "${files[@]}"; do
     local file=$(basename $i)
