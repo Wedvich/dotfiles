@@ -159,7 +159,8 @@ main() {
 
   configure_git
 
-  echo "\n\\033[2mFind terminal themes here:\\033[0m\n🔗 https://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related"
+  echo "\n\\033[2mTerminal themes:\\033[0m\n🔗 https://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related"
+  echo "\n\\033[2mFira Code nerd font:\\033[0m\n🔗 https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.zip"
 
   source "$HOME/.zshrc"
   tmux source "$HOME/.tmux.conf"
