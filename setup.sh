@@ -126,19 +126,19 @@ configure_git() {
     echo "⚠️ \\033[33m$1\\033[0m"
   }
 
-  if [ ! -z "$(git config --global --includes user.name)" ]; then
+  if [ -z "$(git config --global --includes user.name)" ]; then
     show_configure_git_message
     show_configure_git_warning "name is missing"
     has_missing=true
   fi
 
-  if [ ! -z "$(git config --global --includes user.email)" ]; then
+  if [ -z "$(git config --global --includes user.email)" ]; then
     show_configure_git_message
     show_configure_git_warning "email is missing"
     has_missing=true
   fi
 
-  if [ ! -z "$(git config --global --includes user.signingkey)" ]; then
+  if [ -z "$(git config --global --includes user.signingkey)" ]; then
     show_configure_git_message
     show_configure_git_warning "signingkey is missing"
     has_missing=true
@@ -158,7 +158,7 @@ main() {
 
   configure_git
 
-  echo "\nTerminal themes:\n🔗 https://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related"
+  echo "\n\\033[2mFind terminal themes here:\\033[0m\n🔗 https://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related"
 
   source "$HOME/.zshrc"
   tmux source "$HOME/.tmux.conf"

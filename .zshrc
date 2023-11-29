@@ -5,6 +5,12 @@ fi
 
 if [[ $(uname -r) == *WSL2* ]]; then
   source ~/.agent-bridge.sh
+  init-1pw() {
+    echo "removing previous socket..."
+    rm $SSH_AUTH_SOCK
+    echo "Starting SSH-Agent relay..."
+    (setsid socat UNIX-LISTEN:$SSH_AUTH_SOCK,fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
+  }
 fi
 
 # Autocompletion
