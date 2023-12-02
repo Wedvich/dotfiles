@@ -15,7 +15,7 @@ if [[ $(uname -r) == *WSL2* ]]; then
 fi
 
 # Aliases
-alias ls="eza"
+alias ls="eza --icons"
 
 # History
 setopt extended_history       # record timestamp of command in HISTFILE
