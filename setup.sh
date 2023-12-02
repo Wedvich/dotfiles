@@ -118,6 +118,23 @@ install_themes() {
   fi
 }
 
+install_fonts() {
+  if [[ "$OSTYPE" != "darwin"* ]]; then
+    return
+  fi
+
+  local font_dir="/tmp/install_fonts"
+
+  rm -rf "$font_dir"
+  mkdir -p "$font_dir"
+  cd "$font_dir"
+  curl -sLO https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.tar.xz
+  unxz FiraCode.tar.xz
+  tar -xf FiraCode.tar
+  find . -type f -name '*.ttf' -exec cp '{}' "$HOME/Library/Fonts/" ';'
+  cd -
+}
+
 install_rust() {
   if command -v rustup >/dev/null; then
     return
@@ -177,13 +194,13 @@ main() {
   install_zsh_plugins
   install_starship
   install_themes
+  install_fonts
   install_rust
   install_eza
 
   configure_git
 
   echo "\n\\033[2mTerminal themes:\\033[0m\n🔗 https://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related"
-  echo "\n\\033[2mFira Code nerd font:\\033[0m\n🔗 https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.zip"
 
   source "$HOME/.zshrc"
   tmux source "$HOME/.tmux.conf"
