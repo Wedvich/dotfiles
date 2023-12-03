@@ -99,7 +99,7 @@ install_starship() {
     return
   elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo "Installing starship..."
-    curl -sS https://starship.rs/install.sh | sh
+    curl -sS https://starship.rs/install.sh | sh -- -y
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Installing starship..."
     brew install starship
@@ -147,6 +147,7 @@ install_rust() {
 
   echo "Installing Rust..."
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
+  source "$HOME/.cargo/env"
 }
 
 install_eza() {
