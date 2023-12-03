@@ -87,6 +87,11 @@ install_zsh_plugins() {
     show_install_zsh_plugins_message
     git clone --depth 1 https://github.com/agkozak/zsh-z.git "$zsh/zsh-z"
   fi
+
+  if [ ! -d "$zsh/zsh-autocomplete" ]; then
+    show_install_zsh_plugins_message
+    git clone --depth 1 https://github.com/marlonrichert/zsh-autocomplete.git "$zsh/zsh-autocomplete"
+  fi
 }
 
 install_starship() {

@@ -27,20 +27,10 @@ setopt share_history          # share command history data
 
 # Plugins
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
+source ~/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
 source ~/.zsh/zsh-nvm/zsh-nvm.plugin.zsh
 source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
 source ~/.zsh/zsh-z/zsh-z.plugin.zsh
-
-# Autocompletion
-zstyle ':completion:*' menu select matcher-list 'm:{a-z}={A-Za-z}'
-bindkey '^[[Z' reverse-menu-complete
-autoload -U up-line-or-beginning-search
-autoload -U down-line-or-beginning-search
-zle -N up-line-or-beginning-search
-zle -N down-line-or-beginning-search
-bindkey "^[[A" up-line-or-beginning-search # Up
-bindkey "^[[B" down-line-or-beginning-search # Down
-autoload -U compinit; compinit
 
 # Rust
 source "$HOME/.cargo/env"
