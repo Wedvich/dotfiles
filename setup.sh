@@ -208,6 +208,9 @@ main() {
 
   echo "\n\\033[2mTerminal themes:\\033[0m\n🔗 https://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related"
 
+  local local_zshrc="$HOME/.zshrc.local"
+  [[ -f $local_zshrc ]] || touch $local_zshrc
+
   source "$HOME/.zshrc"
   tmux source "$HOME/.tmux.conf"
 }

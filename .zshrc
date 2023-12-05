@@ -37,3 +37,6 @@ source "$HOME/.cargo/env"
 
 # Init Starship prompt
 eval "$(starship init zsh)"
+
+# Local config
+source "$HOME/.zshrc.local"
