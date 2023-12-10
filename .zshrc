@@ -17,6 +17,15 @@ fi
 # Aliases
 alias ls="eza --icons"
 
+# Functions
+updot() {
+  echo "Updating dotfiles..."
+  cd "$HOME/dotfiles"
+  git pull
+  ./setup.sh
+  cd -
+}
+
 # History
 setopt extended_history       # record timestamp of command in HISTFILE
 setopt hist_expire_dups_first # delete duplicates first when HISTFILE size exceeds HISTSIZE
