@@ -159,6 +159,17 @@ install_eza() {
   cargo install eza
 }
 
+install_raycast() {
+  if [[ "$OSTYPE" != "darwin"* ]]; then
+    return
+  fi
+
+  if ! brew info raycast &>/dev/null; then
+    echo "Installing Raycast..."
+    brew install --cask raycast
+  fi
+}
+
 configure_git() {
   local has_shown_message=false
   local has_missing=false
@@ -190,10 +201,29 @@ configure_git() {
   fi
 }
 
+configure_xcode() {
+  if [[ "$OSTYPE" != "darwin"* ]]; then
+    return
+  fi
+
+  if ! command -v xcode-select >/dev/null; then
+    echo "Installing Xcode..."
+    sudo xcode-select --install
+  fi
+
+  local xcode_version=`xcodebuild -version | grep '^Xcode\s' | sed -E 's/^Xcode[[:space:]]+([0-9\.]+)/\1/'`
+  local accepted_license_version=`defaults read /Library/Preferences/com.apple.dt.Xcode 2> /dev/null | grep IDEXcodeVersionForAgreedToGMLicense | cut -d '"' -f 2`
+  if [ "$xcode_version" != "$accepted_license_version" ]; then
+    sudo xcodebuild -license accept;
+  fi
+}
+
 main() {
   source "$DOTFILES_PATH/.zshenv"
 
   link_dotfiles
+
+  configure_xcode
 
   install_homebrew
   install_tmux
@@ -203,6 +233,7 @@ main() {
   install_fonts
   install_rust
   install_eza
+  install_raycast
 
   configure_git
 
