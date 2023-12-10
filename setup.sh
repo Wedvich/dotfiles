@@ -242,7 +242,7 @@ main() {
   local local_zshrc="$HOME/.zshrc.local"
   [[ -f $local_zshrc ]] || touch $local_zshrc
 
-  source "$HOME/.zshrc"
+  exec zsh
   tmux source "$HOME/.tmux.conf"
 }
 
