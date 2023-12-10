@@ -5,6 +5,7 @@ export VISUAL="code"
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=$zsh_history_size
 export NVM_AUTO_USE=true
+export NVM_COMPLETION=true
 export SAVEHIST=$zsh_history_size
 export STARSHIP_CONFIG="$HOME/starship.toml"
 
