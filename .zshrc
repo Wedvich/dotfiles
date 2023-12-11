@@ -15,6 +15,7 @@ if [[ $(uname -r) == *WSL2* ]]; then
 fi
 
 # Aliases
+alias esh="exec zsh"
 alias ls="eza --icons"
 
 # Functions
