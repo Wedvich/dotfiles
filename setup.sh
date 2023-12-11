@@ -40,19 +40,18 @@ install_homebrew() {
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
+
+  brew bundle --file "$DOTFILES_PATH/Brewfile" --no-lock
 }
 
 install_tmux() {
-  if command -v tmux >/dev/null; then
+  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
     return
-  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  fi
+
+  if ! command -v tmux >/dev/null; then
     echo "Installing tmux..."
     sudo apt install -y tmux
-  elif [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Installing tmux..."
-    brew install tmux
-  else
-    echo "Unrecognized OS: $OSTYPE"
   fi
 }
 
@@ -95,16 +94,13 @@ install_zsh_plugins() {
 }
 
 install_starship() {
-  if command -v starship >/dev/null; then
+  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
     return
-  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  fi
+
+  if ! command -v starship >/dev/null; then
     echo "Installing starship..."
     curl -sS https://starship.rs/install.sh | sh -- -y
-  elif [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Installing starship..."
-    brew install starship
-  else
-    echo "Unrecognized OS: $OSTYPE"
   fi
 }
 
@@ -159,17 +155,6 @@ install_eza() {
   cargo install eza
 }
 
-install_raycast() {
-  if [[ "$OSTYPE" != "darwin"* ]]; then
-    return
-  fi
-
-  if ! brew info raycast &>/dev/null; then
-    echo "Installing Raycast..."
-    brew install --cask raycast
-  fi
-}
-
 configure_git() {
   local has_shown_message=false
   local has_missing=false
@@ -219,6 +204,8 @@ configure_xcode() {
 }
 
 main() {
+  echo "Setting up environment..."
+
   source "$DOTFILES_PATH/.zshenv"
 
   link_dotfiles
@@ -233,11 +220,19 @@ main() {
   install_fonts
   install_rust
   install_eza
-  install_raycast
 
   configure_git
 
-  echo "\n\\033[2mTerminal themes:\\033[0m\n🔗 https://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related"
+  echo "\nManual steps:"
+  echo "- Install terminal themes\n  \\033[2mhttps://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related\\033[0m"
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "- Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
+    echo "- Install 1password\n  \\033[2mhttps://downloads.1password.com/mac/1Password.zip\\033[0m"
+  fi
+  echo "- Log in to 1Password"
+  echo "- Log in to VS Code"
+  echo "- Log in to Firefox"
 
   local local_zshrc="$HOME/.zshrc.local"
   [[ -f $local_zshrc ]] || touch $local_zshrc
