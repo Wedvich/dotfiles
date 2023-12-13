@@ -36,7 +36,7 @@ install_homebrew() {
     return
   fi
 
-  if ! command -v brew >/dev/null; then
+  if ! command -v brew >/dev/null 2>&1; then
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
@@ -49,7 +49,7 @@ install_tmux() {
     return
   fi
 
-  if ! command -v tmux >/dev/null; then
+  if ! command -v tmux >/dev/null 2>&1; then
     echo "Installing tmux..."
     sudo apt install -y tmux
   fi
@@ -98,7 +98,7 @@ install_starship() {
     return
   fi
 
-  if ! command -v starship >/dev/null; then
+  if ! command -v starship >/dev/null 2>&1; then
     echo "Installing starship..."
     curl -sS https://starship.rs/install.sh | sh -- -y
   fi
@@ -137,7 +137,7 @@ install_fonts() {
 }
 
 install_rust() {
-  if ! command -v rustup >/dev/null; then
+  if ! command -v rustup >/dev/null 2>&1; then
     echo "Installing Rust..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
     source "$HOME/.cargo/env"
@@ -145,10 +145,11 @@ install_rust() {
 
   mkdir -p "$HOME/.zfunc"
   rustup completions zsh > "$HOME/.zfunc/_rustup"
+  cargo install -q cargo-generate
 }
 
 install_eza() {
-  if command -v eza >/dev/null; then
+  if command -v eza >/dev/null 2>&1; then
     return
   fi
 
@@ -158,7 +159,6 @@ install_eza() {
 
 configure_git() {
   local has_shown_message=false
-  local has_missing=false
   show_configure_git_message() {
     if ! $has_shown_message; then
       echo "Validating Git config..."
@@ -178,13 +178,8 @@ configure_git() {
     if [ -z "$(git config --global --includes $i)" ]; then
       show_configure_git_message
       show_configure_git_warning "$i is missing"
-      has_missing=true
     fi
   done
-
-  if [ $has_missing = false ]; then
-    echo "✅ Git config is valid"
-  fi
 }
 
 configure_xcode() {
@@ -192,7 +187,7 @@ configure_xcode() {
     return
   fi
 
-  if ! command -v xcode-select >/dev/null; then
+  if ! command -v xcode-select >/dev/null 2>&1; then
     echo "Installing Xcode..."
     sudo xcode-select --install
   fi
@@ -204,8 +199,28 @@ configure_xcode() {
   fi
 }
 
+install_pkgconfig() {
+  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+    return
+  fi
+
+  if dpkg -s pkg-config >/dev/null 2>&1; then
+    return
+  fi
+
+  sudo apt install -y pkg-config
+}
+
 main() {
-  echo "Setting up environment..."
+  echo "\033[38;2;254;172;94mS\033[38;2;249;167;104me\033[38;2;244;163;115mt\033[38;2;239;158;125mt\033[38;2;234;153;135mi\033[38;2;229;149;146mn\033[38;2;224;144;156mg\033[38;2;219;140;167m \033[38;2;214;135;177mu\033[38;2;209;130;187mp\033[38;2;204;126;198m \033[38;2;199;121;208me\033[38;2;188;127;207mn\033[38;2;176;134;207mv\033[38;2;165;140;206mi\033[38;2;154;147;205mr\033[38;2;143;153;204mo\033[38;2;131;160;204mn\033[38;2;120;166;203mm\033[38;2;109;173;202me\033[38;2;98;179;201mn\033[38;2;86;186;201mt\033[0m 🦄"
+  echo "\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m"
+
+  local git_sha=$(git rev-parse --short HEAD)
+  test "$(git status --porcelain)" && git_sha+=" (dirty)"
+  echo "\\033[2mhome:    \\033[0m$HOME"
+  echo "\\033[2msystem:  \\033[0m$OSTYPE $(uname -m) ($(uname -r))"
+  echo "\\033[2mversion: \\033[0m$git_sha"
+  echo "\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m\n"
 
   source "$DOTFILES_PATH/.zshenv"
 
@@ -219,24 +234,28 @@ main() {
   install_starship
   install_themes
   install_fonts
+  install_pkgconfig
   install_rust
   install_eza
 
   configure_git
 
-  echo "\nManual steps:"
-  echo "- Install terminal themes\n  \\033[2mhttps://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related\\033[0m"
+  echo "Manual steps:"
+  echo "• Install terminal themes\n  \\033[2mhttps://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related\\033[0m"
 
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "- Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
-    echo "- Install 1password\n  \\033[2mhttps://downloads.1password.com/mac/1Password.zip\\033[0m"
+    echo "• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
+    echo "• Install 1password\n  \\033[2mhttps://downloads.1password.com/mac/1Password.zip\\033[0m"
   fi
-  echo "- Log in to 1Password"
-  echo "- Log in to VS Code"
-  echo "- Log in to Firefox"
+  echo "• Log in to 1Password"
+  echo "• Log in to VS Code"
+  echo "• Log in to Firefox"
 
   local local_zshrc="$HOME/.zshrc.local"
   [[ -f $local_zshrc ]] || touch $local_zshrc
+
+  echo "\n\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m"
+  echo "\033[38;2;254;172;94mA\033[38;2;242;161;119ml\033[38;2;230;149;145ml\033[38;2;217;138;170m \033[38;2;205;127;195md\033[38;2;185;129;207mo\033[38;2;158;145;205mn\033[38;2;130;160;204me\033[38;2;103;176;202m!\033[0m"
 
   exec zsh
   tmux source "$HOME/.tmux.conf"

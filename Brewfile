@@ -1,5 +1,6 @@
 brew "tmux"
 brew "starship"
+brew "pkg-config"
 
 cask "raycast"
 cask "visual-studio-code"
