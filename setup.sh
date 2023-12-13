@@ -137,13 +137,14 @@ install_fonts() {
 }
 
 install_rust() {
-  if command -v rustup >/dev/null; then
-    return
+  if ! command -v rustup >/dev/null; then
+    echo "Installing Rust..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
+    source "$HOME/.cargo/env"
   fi
 
-  echo "Installing Rust..."
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
-  source "$HOME/.cargo/env"
+  mkdir -p "$HOME/.zfunc"
+  rustup completions zsh > "$HOME/.zfunc/_rustup"
 }
 
 install_eza() {

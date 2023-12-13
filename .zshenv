@@ -10,3 +10,4 @@ export SAVEHIST=$zsh_history_size
 export STARSHIP_CONFIG="$HOME/starship.toml"
 
 skip_global_compinit=1
+fpath+="$HOME/.zfunc"
