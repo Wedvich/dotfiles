@@ -145,7 +145,7 @@ install_rust() {
 
   mkdir -p "$HOME/.zfunc"
   rustup completions zsh > "$HOME/.zfunc/_rustup"
-  cargo install -q cargo-generate
+  cargo install cargo-generate
 }
 
 install_eza() {
