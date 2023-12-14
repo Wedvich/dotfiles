@@ -99,7 +99,7 @@ install_starship() {
   fi
 
   if ! command -v starship >/dev/null 2>&1; then
-    echo "Installing starship..."
+    echo "Installing Starship..."
     curl -sS https://starship.rs/install.sh | sh -- -y
   fi
 }
@@ -211,6 +211,34 @@ install_cargo() {
   fi
 }
 
+install_1password_cli() {
+  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+    return
+  fi
+
+  if command -v op >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "Installing 1Password CLI..."
+
+  curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+  sudo gpg --yes --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" | \
+  sudo tee /etc/apt/sources.list.d/1password.list > /dev/null
+
+  sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22
+  curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | \
+  sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol > /dev/null
+
+  sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+  curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+  sudo gpg --yes --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+
+  sudo apt update -y && sudo apt install 1password-cli
+}
+
 main() {
   echo "\n\033[38;2;254;172;94mS\033[38;2;249;167;104me\033[38;2;244;163;115mt\033[38;2;239;158;125mt\033[38;2;234;153;135mi\033[38;2;229;149;146mn\033[38;2;224;144;156mg\033[38;2;219;140;167m \033[38;2;214;135;177mu\033[38;2;209;130;187mp\033[38;2;204;126;198m \033[38;2;199;121;208me\033[38;2;188;127;207mn\033[38;2;176;134;207mv\033[38;2;165;140;206mi\033[38;2;154;147;205mr\033[38;2;143;153;204mo\033[38;2;131;160;204mn\033[38;2;120;166;203mm\033[38;2;109;173;202me\033[38;2;98;179;201mn\033[38;2;86;186;201mt\033[0m 🦄"
   echo "\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m"
@@ -237,19 +265,17 @@ main() {
   install_pkgconfig
   install_rust
   install_cargo
+  install_1password_cli
 
   configure_git
 
   echo "\nManual steps:"
+  echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
   echo "• Install terminal themes\n  \\033[2mhttps://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related\\033[0m"
 
   if [[ "$OSTYPE" == "darwin"* ]]; then
     echo "• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
-    echo "• Install 1password\n  \\033[2mhttps://downloads.1password.com/mac/1Password.zip\\033[0m"
   fi
-  echo "• Log in to 1Password"
-  echo "• Log in to VS Code"
-  echo "• Log in to Firefox"
 
   local local_zshrc="$HOME/.zshrc.local"
   [[ -f $local_zshrc ]] || touch $local_zshrc

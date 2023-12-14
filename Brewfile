@@ -1,6 +1,7 @@
 brew "tmux"
 brew "starship"
 brew "pkg-config"
+brew "1password-cli"
 
 cask "raycast"
 cask "visual-studio-code"
