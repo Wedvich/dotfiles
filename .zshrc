@@ -27,6 +27,14 @@ updot() {
   cd -
 }
 
+zsh_history_fix() {
+  echo "Fixing ZSH history file..."
+  mv "$HOME/.zsh_history" "$HOME/.zsh_history_bad"
+  strings "$HOME/.zsh_history_bad" > "$HOME/.zsh_history"
+  fc -R "$HOME/.zsh_history"
+  rm "$HOME/.zsh_history_bad"
+}
+
 # History
 setopt extended_history       # record timestamp of command in HISTFILE
 setopt hist_expire_dups_first # delete duplicates first when HISTFILE size exceeds HISTSIZE
