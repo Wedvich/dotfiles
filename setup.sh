@@ -39,6 +39,8 @@ install_homebrew() {
   if ! command -v brew >/dev/null 2>&1; then
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> "$HOME/.zshrc.local"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
 
   brew bundle --file "$DOTFILES_PATH/Brewfile" --no-lock
@@ -170,6 +172,15 @@ configure_git() {
       show_configure_git_warning "$i is missing"
     fi
   done
+
+  if $has_shown_message; then
+    return
+  fi
+
+  if git remote -v | grep -q "https://"; then
+    echo "Converting repo from HTTPS to SSH"
+    git remote set-url origin git@github.com:Wedvich/dotfiles.git
+  fi
 }
 
 configure_xcode() {

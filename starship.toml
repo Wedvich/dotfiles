@@ -4,5 +4,8 @@
 truncate_to_repo = false
 truncation_length = 0
 
+[gcloud]
+disabled = true
+
 [ruby]
 detect_variables = []
