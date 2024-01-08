@@ -2,6 +2,7 @@ brew "tmux"
 brew "starship"
 brew "pkg-config"
 brew "xz"
+brew "hyperfine"
 
 cask "raycast"
 cask "visual-studio-code"
