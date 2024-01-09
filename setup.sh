@@ -177,9 +177,10 @@ configure_git() {
     return
   fi
 
-  if git remote -v | grep -q "https://"; then
-    echo "Converting repo from HTTPS to SSH"
-    git remote set-url origin git@github.com:Wedvich/dotfiles.git
+  if ! git remote -v | grep -q "https://github.com/Wedvich/dotfiles.git (fetch)"; then
+    echo "Converting git fetch URL from SSH to HTTPS"
+    git remote set-url origin https://github.com/Wedvich/dotfiles.git
+    git remote set-url origin --push git@github.com:Wedvich/dotfiles.git
   fi
 }
 
