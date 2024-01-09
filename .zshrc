@@ -1,6 +1,11 @@
 # Create or attach to tmux session if not already in one
 if ! { [[ "$TERM" == "screen"* ]] && [ -n "$TMUX" ]; } then
-  tmux new -As0
+  if tmux has-session >/dev/null 2>&1; then
+    # If there are any tmux sessions, attach to the first unattached or create new session+window
+    tmux attach -t ${$(tmux list-sessions -F '#{session_name}' -f '#{==:#{session_attached},0}')[1]} || tmux new -t main\; new-window
+  else
+    tmux new -t main
+  fi
 fi
 
 # Set up SSH agent bridge with Windows host on WSL2
@@ -17,6 +22,7 @@ fi
 # Aliases
 alias esh="exec zsh"
 alias ls="eza --icons"
+alias edot="code $HOME/dotfiles"
 
 # Functions
 updot() {
