@@ -29,8 +29,7 @@ updot() {
   echo "Updating dotfiles..."
   cd "$HOME/dotfiles"
   git pull
-  ./setup.sh
-  cd -
+  ./setup.sh $OLDPWD
 }
 
 zsh_history_fix() {
