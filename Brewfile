@@ -3,6 +3,7 @@ brew "starship"
 brew "pkg-config"
 brew "xz"
 brew "hyperfine"
+brew "thefuck"
 
 cask "raycast"
 cask "visual-studio-code"
