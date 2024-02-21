@@ -16,3 +16,7 @@
 
 [alias]
   prune = 'git remote update --prune && git branch -vv | awk "/: gone]/{print $1}" | xargs git branch -d'
+
+[rerere]
+  enabled = true
+  autoUpdate = true
