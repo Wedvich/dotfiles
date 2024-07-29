@@ -4,6 +4,7 @@ brew "pkg-config"
 brew "xz"
 brew "hyperfine"
 brew "thefuck"
+brew "bun"
 
 cask "raycast"
 cask "visual-studio-code"
