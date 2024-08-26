@@ -165,7 +165,7 @@ configure_git() {
 
   git config --global --get-all include.path | grep -q "$HOME/.gitconfig_dotfile" || git config --global --add include.path "$HOME/.gitconfig_dotfile"
 
-  local keys=(user.name user.email user.signingkey gpg.ssh.program)
+  local keys=(user.name user.email user.signingkey gpg.ssh.program gpg.ssh.allowedSignersFile)
 
   for i in "${keys[@]}"; do
     if [ -z "$(git config --global --includes $i)" ]; then
