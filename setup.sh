@@ -44,7 +44,7 @@ install_homebrew() {
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
 
-  brew bundle --file "$DOTFILES_PATH/Brewfile" --no-lock
+  brew bundle --file "$DOTFILES_PATH/Brewfile"
 }
 
 install_tmux() {
