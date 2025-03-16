@@ -139,16 +139,16 @@ install_fonts() {
   cd -
 }
 
-install_rust() {
-  if ! command -v rustup >/dev/null 2>&1; then
-    echo "Installing Rust..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
-    source "$HOME/.cargo/env"
-  fi
+# install_rust() {
+#   if ! command -v rustup >/dev/null 2>&1; then
+#     echo "Installing Rust..."
+#     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
+#     source "$HOME/.cargo/env"
+#   fi
 
-  mkdir -p "$HOME/.zfunc"
-  rustup completions zsh > "$HOME/.zfunc/_rustup"
-}
+#   mkdir -p "$HOME/.zfunc"
+#   rustup completions zsh > "$HOME/.zfunc/_rustup"
+# }
 
 configure_git() {
   local has_shown_message=false
@@ -292,7 +292,7 @@ main() {
   install_themes
   install_fonts
   install_pkgconfig
-  install_rust
+  # install_rust
   install_cargo
   install_1password_cli
   install_hyperfine

@@ -58,12 +58,11 @@ setopt share_history          # share command history data
 # Plugins
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
 source ~/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
-source ~/.zsh/zsh-nvm/zsh-nvm.plugin.zsh
 source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
 source ~/.zsh/zsh-z/zsh-z.plugin.zsh
 
 # Rust
-source "$HOME/.cargo/env"
+# source "$HOME/.cargo/env"
 
 # Init Starship prompt
 eval "$(starship init zsh)"
