@@ -1,5 +1,5 @@
 # Create or attach to tmux session if not already in one
-if ! { [[ "$TERM" == "screen"* ]] && [ -n "$TMUX" ]; } then
+if [ -z "$TMUX" ]; then
   if tmux has-session >/dev/null 2>&1; then
     local detached_session=${$(tmux list-sessions -F '#{session_name}' -f '#{==:#{session_attached},0}')[1]}
     if [ -n "$detached_session" ]; then
