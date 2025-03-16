@@ -5,6 +5,8 @@ brew "xz"
 brew "hyperfine"
 brew "thefuck"
 brew "bun"
+brew "gpg"
+brew "mise"
 
 cask "raycast"
 cask "visual-studio-code"

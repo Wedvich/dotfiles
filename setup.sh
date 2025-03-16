@@ -75,11 +75,6 @@ install_zsh_plugins() {
     git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions.git "$zsh/zsh-autosuggestions"
   fi
 
-  if [ ! -d "$zsh/zsh-nvm" ]; then
-    show_install_zsh_plugins_message
-    git clone --depth 1 https://github.com/lukechilds/zsh-nvm.git "$zsh/zsh-nvm"
-  fi
-
   if [ ! -d "$zsh/zsh-syntax-highlighting" ]; then
     show_install_zsh_plugins_message
     git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting.git "$zsh/zsh-syntax-highlighting"

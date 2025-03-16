@@ -64,6 +64,9 @@ source ~/.zsh/zsh-z/zsh-z.plugin.zsh
 # Rust
 # source "$HOME/.cargo/env"
 
+# Mise
+eval "$(mise activate zsh)"
+
 # Init Starship prompt
 eval "$(starship init zsh)"
 
