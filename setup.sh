@@ -209,15 +209,15 @@ install_pkgconfig() {
   sudo apt install -y pkg-config
 }
 
-install_cargo() {
-  if ! command -v eza >/dev/null 2>&1; then
-    cargo install eza
-  fi
+# install_cargo() {
+#   if ! command -v eza >/dev/null 2>&1; then
+#     cargo install eza
+#   fi
 
-  if ! command -v cargo-generate >/dev/null 2>&1; then
-    cargo install cargo-generate
-  fi
-}
+#   if ! command -v cargo-generate >/dev/null 2>&1; then
+#     cargo install cargo-generate
+#   fi
+# }
 
 install_1password_cli() {
   if [[ "$OSTYPE" != "linux-gnu"* ]]; then
@@ -288,7 +288,7 @@ main() {
   install_fonts
   install_pkgconfig
   # install_rust
-  install_cargo
+  # install_cargo
   install_1password_cli
   install_hyperfine
 
