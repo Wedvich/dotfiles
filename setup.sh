@@ -134,16 +134,16 @@ install_fonts() {
   cd -
 }
 
-# install_rust() {
-#   if ! command -v rustup >/dev/null 2>&1; then
-#     echo "Installing Rust..."
-#     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
-#     source "$HOME/.cargo/env"
-#   fi
+install_rust() {
+  if ! command -v rustup >/dev/null 2>&1; then
+    echo "Installing Rust..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path -y
+    source "$HOME/.cargo/env"
+  fi
 
-#   mkdir -p "$HOME/.zfunc"
-#   rustup completions zsh > "$HOME/.zfunc/_rustup"
-# }
+  mkdir -p "$HOME/.zfunc"
+  rustup completions zsh > "$HOME/.zfunc/_rustup"
+}
 
 configure_git() {
   local has_shown_message=false
@@ -209,15 +209,15 @@ install_pkgconfig() {
   sudo apt install -y pkg-config
 }
 
-# install_cargo() {
-#   if ! command -v eza >/dev/null 2>&1; then
-#     cargo install eza
-#   fi
+install_cargo() {
+  if ! command -v eza >/dev/null 2>&1; then
+    cargo install eza
+  fi
 
-#   if ! command -v cargo-generate >/dev/null 2>&1; then
-#     cargo install cargo-generate
-#   fi
-# }
+  if ! command -v cargo-generate >/dev/null 2>&1; then
+    cargo install cargo-generate
+  fi
+}
 
 install_1password_cli() {
   if [[ "$OSTYPE" != "linux-gnu"* ]]; then
@@ -261,6 +261,22 @@ install_hyperfine() {
   sudo apt update -y && sudo apt install hyperfine
 }
 
+install_mise() {
+  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+    return
+  fi
+
+  if ! command -v mise >/dev/null 2>&1; then
+    echo "Installing mise..."
+    sudo apt update -y
+    sudo install -dm 755 /etc/apt/keyrings
+    wget -qO - https://mise.jdx.dev/gpg-key.pub | gpg --dearmor | sudo tee /etc/apt/keyrings/mise-archive-keyring.gpg 1> /dev/null
+    echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=amd64] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
+    sudo apt update -y
+    sudo apt install -y mise
+  fi
+}
+
 main() {
   echo "\n\033[38;2;254;172;94mS\033[38;2;249;167;104me\033[38;2;244;163;115mt\033[38;2;239;158;125mt\033[38;2;234;153;135mi\033[38;2;229;149;146mn\033[38;2;224;144;156mg\033[38;2;219;140;167m \033[38;2;214;135;177mu\033[38;2;209;130;187mp\033[38;2;204;126;198m \033[38;2;199;121;208me\033[38;2;188;127;207mn\033[38;2;176;134;207mv\033[38;2;165;140;206mi\033[38;2;154;147;205mr\033[38;2;143;153;204mo\033[38;2;131;160;204mn\033[38;2;120;166;203mm\033[38;2;109;173;202me\033[38;2;98;179;201mn\033[38;2;86;186;201mt\033[0m 🦄"
   echo "\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m"
@@ -287,10 +303,11 @@ main() {
   install_themes
   install_fonts
   install_pkgconfig
-  # install_rust
-  # install_cargo
+  install_rust
+  install_cargo
   install_1password_cli
   install_hyperfine
+  install_mise
 
   configure_git
 
