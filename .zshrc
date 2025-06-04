@@ -1,17 +1,14 @@
 # Create or attach to tmux session if not already in one
 if [ -z "$TMUX" ]; then
-  if tmux has-session >/dev/null 2>&1; then
-    local detached_session=${$(tmux list-sessions -F '#{session_name}' -f '#{==:#{session_attached},0}')[1]}
+  if tmux has-session -t main >/dev/null 2>&1; then
+    local detached_session=$(tmux list-sessions -F '#{session_name}' -f '#{&&:#{==:#{session_group},main},#{==:#{session_attached},0}}' 2>/dev/null | head -n1)
     if [ -n "$detached_session" ]; then
-      # Attach to existing free session
-      tmux attach -t $detached_session
+      tmux attach -t "$detached_session"
     else
-      # Create a new session in the main session group, and create a new window
-      tmux new -t main\; new-window
+      tmux new-session -t main \; new-window
     fi
   else
-    # Don't create an extra window if it's the first session
-    tmux new -t main
+    tmux new-session -s main
   fi
 fi
 
