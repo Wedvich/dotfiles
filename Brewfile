@@ -14,6 +14,7 @@ cask "firefox"
 cask "spotify"
 cask "1password-cli"
 cask "notion"
+cask "bluesnooze"
 
 mas "Microsoft To-Do", id: 1274495053
 mas "Slack for Desktop", id: 803453959
