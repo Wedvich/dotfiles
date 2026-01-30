@@ -244,7 +244,7 @@ install_1password_cli() {
   curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
   sudo gpg --yes --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
 
-  sudo apt update -y && sudo apt install 1password-cli
+  sudo apt update -y && sudo apt install -y 1password-cli
 }
 
 install_hyperfine() {
@@ -258,7 +258,7 @@ install_hyperfine() {
 
   echo "Installing Hyperfine..."
 
-  sudo apt update -y && sudo apt install hyperfine
+  sudo apt update -y && sudo apt install -y hyperfine
 }
 
 install_mise() {
@@ -274,6 +274,17 @@ install_mise() {
     echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=amd64] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
     sudo apt update -y
     sudo apt install -y mise
+  fi
+}
+
+install_bat() {
+  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+    return
+  fi
+
+  if ! command -v bat >/dev/null 2>&1; then
+    echo "Installing bat..."
+    sudo apt update -y && sudo apt install -y bat
   fi
 }
 
@@ -308,6 +319,7 @@ main() {
   install_1password_cli
   install_hyperfine
   install_mise
+  install_bat
 
   configure_git
 

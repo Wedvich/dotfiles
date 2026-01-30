@@ -7,6 +7,7 @@ brew "thefuck"
 brew "bun"
 brew "gpg"
 brew "mise"
+brew "bat"
 
 cask "raycast"
 cask "visual-studio-code"
