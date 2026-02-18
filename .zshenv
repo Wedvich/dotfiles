@@ -8,6 +8,7 @@ export SAVEHIST=$zsh_history_size
 export STARSHIP_CONFIG="$HOME/starship.toml"
 export NODE_COMPILE_CACHE="$HOME/.cache/nodejs-compile-cache"
 export MISE_NODE_COREPACK=true
+export COLORTERM=truecolor
 
 skip_global_compinit=1
 fpath+="$HOME/.zfunc"
