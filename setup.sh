@@ -30,6 +30,15 @@ link_dotfiles() {
     show_link_dotfiles_message
     ln -fsv "$source" "$target"
   done
+
+  # CLAUDE.md needs to go into ~/.claude/, not ~/
+  mkdir -p "$HOME/.claude"
+  local claude_source="$DOTFILES_PATH/CLAUDE.md"
+  local claude_target="$HOME/.claude/CLAUDE.md"
+  if [ ! -f "$claude_target" ] || [ "$(readlink -f "$claude_target")" != "$claude_source" ] || [ ! "$claude_target" -ef "$claude_source" ]; then
+    show_link_dotfiles_message
+    ln -fsv "$claude_source" "$claude_target"
+  fi
 }
 
 install_homebrew() {
