@@ -15,6 +15,7 @@
   gpgsign = true
 
 [alias]
+  home = !git checkout $(git symbolic-ref refs/remotes/origin/HEAD --short | sed 's|origin/||') && git pull
   prune = 'git remote update --prune && git branch -vv | awk "/: gone]/{print $1}" | xargs git branch -d'
 
 [rerere]
