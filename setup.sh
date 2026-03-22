@@ -111,21 +111,6 @@ install_starship() {
   fi
 }
 
-install_themes() {
-  local has_shown_message=false
-  show_install_themes_message() {
-    if ! $has_shown_message; then
-      echo "Installing themes..."
-      has_shown_message=true
-    fi
-  }
-
-  if [ ! -f "$HOME/.tmux.snazzy.theme" ]; then
-    show_install_themes_message
-    curl -o "$HOME/.tmux.snazzy.theme" https://raw.githubusercontent.com/ivnvxd/tmux-snazzy/main/.tmux.snazzy.theme
-  fi
-}
-
 install_fonts() {
   if [[ "$OSTYPE" != "darwin"* ]]; then
     return
@@ -320,7 +305,6 @@ main() {
   install_tmux
   install_zsh_plugins
   install_starship
-  install_themes
   install_fonts
   install_pkgconfig
   install_rust
