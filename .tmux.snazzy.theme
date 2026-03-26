@@ -1,27 +1,29 @@
-# Snazzy Theme for tmux
+# Snazzy theme — minimal, task-oriented
 
-# default statusbar colors
-set-option -g status-style bg=colour0,fg=colour205
+# ─── Status bar ───────────────────────────────────────────────
 
-# default window title colors
-set-window-option -g window-status-style fg=colour123,bg=default,dim
+set -g status-style bg=colour0,fg=colour205
 
-# active window title colors
-set-window-option -g window-status-current-style fg=colour84,bg=default,bright
+# ─── Window tabs ──────────────────────────────────────────────
 
-# pane border
-set-option -g pane-border-style fg=colour81
-set-option -g pane-active-border-style fg=colour84
+set -g window-status-style fg=colour123,dim
+set -g window-status-current-style fg=colour84,bold
+set -g window-status-bell-style fg=colour209,bold,nodim
 
-# message text
-set-option -g message-style bg=colour81,fg=colour17
+# ─── Pane borders (minimal — just thin colored lines) ─────────
 
-# pane number display
-set-option -g display-panes-active-colour colour203
-set-option -g display-panes-colour colour84
+set -g pane-border-style fg=colour238
+set -g pane-active-border-style fg=colour84
 
-# bell indicator style
-set-window-option -g window-status-bell-style fg=colour209,bg=default,bold,nodim
+# ─── Messages ─────────────────────────────────────────────────
 
-# clock
-set-window-option -g clock-mode-colour colour205
+set -g message-style bg=colour81,fg=colour17
+
+# ─── Pane display ─────────────────────────────────────────────
+
+set -g display-panes-active-colour colour203
+set -g display-panes-colour colour84
+
+# ─── Clock ────────────────────────────────────────────────────
+
+set -g clock-mode-colour colour205
