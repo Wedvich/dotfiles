@@ -8,13 +8,15 @@ brew "bun"
 brew "gpg"
 brew "mise"
 brew "bat"
+brew "rtk"
+brew "go"
+brew "gopls"
 
 cask "raycast"
 cask "visual-studio-code"
 cask "firefox"
 cask "spotify"
 cask "1password-cli"
-cask "notion"
 cask "bluesnooze"
 
 mas "Microsoft To-Do", id: 1274495053
