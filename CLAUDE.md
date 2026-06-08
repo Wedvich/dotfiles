@@ -20,6 +20,50 @@
 
 ---
 
+## Code navigation and editing
+
+Prefer tilth MCP tools over built-in Read/Edit/Grep/Glob for source
+code:
+
+- `mcp__tilth__read` — primary file reader for code. Returns
+  hashlined output (`42:a3f| ...`) that serves as anchors for
+  `mcp__tilth__edit`. Small files come back whole; large files
+  return an outline with line ranges. Use the `section` arg to
+  pull just the lines you need (e.g. `44-89` or a markdown heading
+  like `## Installation`) instead of reading the whole file.
+- `mcp__tilth__edit` — primary editor for code. Uses hashes from
+  a prior `mcp__tilth__read` as anchors, so always read the target
+  section first. If the file has changed since the read, the edit
+  is rejected with current content — re-read and retry rather than
+  guessing or falling back to built-in Edit.
+- `mcp__tilth__search` — symbol-aware search. Tree-sitter finds
+  definitions, not just string matches; results show surrounding
+  file structure and a `── calls ──` footer for resolved callees.
+  Use `kind: "callers"` to find call sites of a symbol.
+- `mcp__tilth__deps` — imports + dependents for a file. Run this
+  before renaming exports or changing a module's public API to
+  check blast radius.
+
+Built-in Read/Edit are fine for non-code (markdown, JSON, configs).
+Built-in Grep (ripgrep) is fine for log files and plain text.
+
+### LSP vs tilth
+
+When a language server (LSP) is available for the current file's language,
+the two tools are complementary — use each for what it's best at:
+
+- **tilth** — default for search, navigation, and broad/structural reads
+  (fast, build-free, name-based).
+- **LSP** — escalate to it when correctness of *semantics* is the question:
+  precise find-references on an ambiguous/overloaded symbol, go-to-definition
+  through re-exports, type/hover info, pre-compile diagnostics, and
+  semantically-correct renames.
+
+Default to tilth; reach for the LSP when name-based matching isn't trustworthy
+enough.
+
+---
+
 ## TypeScript Defaults
 
 These apply unless a project-level config or CLAUDE.md says otherwise:
@@ -108,3 +152,5 @@ Before considering a task done or committing changes:
   Do not commit or push autonomously otherwise.
 - Don't use `git -C <path> <subcommand>` when already in the repo directory.
   Run `git <subcommand>` directly.
+- **No test plan in PR descriptions** unless explicitly asked. Don't add a
+  "Test plan" section or manual test steps.
