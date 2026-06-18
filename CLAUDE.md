@@ -95,7 +95,10 @@ These apply unless a project-level config or CLAUDE.md says otherwise:
 
 - Comments explain **why**, never **what**. The code should be self-documenting.
 - Do not add inline comments unless they clarify non-obvious intent, tradeoffs,
-  or constraints.
+  or constraints — and delete existing ones that just restate adjacent code
+  (e.g. `// totalTokens = input + output` next to that exact expression).
+- **Prefer concision over grammar** — drop articles and filler, trim to the
+  load-bearing point.
 
 ---
 
