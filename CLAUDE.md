@@ -47,6 +47,10 @@ code:
 Built-in Read/Edit are fine for non-code (markdown, JSON, configs).
 Built-in Grep (ripgrep) is fine for log files and plain text.
 
+After a subagent edits a file, `mcp__tilth__read` can serve stale (pre-edit)
+content indefinitely — its per-process index isn't invalidated by external
+writes. Verify via `git diff` / `tilth_diff` before relying on a read.
+
 ### LSP vs tilth
 
 When a language server (LSP) is available for the current file's language,
@@ -54,7 +58,7 @@ the two tools are complementary — use each for what it's best at:
 
 - **tilth** — default for search, navigation, and broad/structural reads
   (fast, build-free, name-based).
-- **LSP** — escalate to it when correctness of *semantics* is the question:
+- **LSP** — escalate to it when correctness of _semantics_ is the question:
   precise find-references on an ambiguous/overloaded symbol, go-to-definition
   through re-exports, type/hover info, pre-compile diagnostics, and
   semantically-correct renames.
@@ -72,6 +76,9 @@ These apply unless a project-level config or CLAUDE.md says otherwise:
 - **ESM imports only.** Never use `require()` or CJS patterns.
 - **Explicit return types** on all exported/public functions.
 - **Avoid enums.** Use `as const` objects or union types instead.
+- **No suppression to silence errors.** Never use `as`/`as any`/`@ts-expect-error` to
+  quiet a type error, and never widen a field to `any` to avoid touching a test. Diagnose
+  the underlying type incompatibility and fix the code or update the tests properly.
 
 ---
 
@@ -88,6 +95,9 @@ These apply unless a project-level config or CLAUDE.md says otherwise:
 - In `package.json` files, always sort `scripts` keys alphabetically.
 - In `tsconfig.json` files, always sort `compilerOptions` keys alphabetically.
 - Avoid default exports. Named exports are clearer and easier to refactor.
+- **Run tooling through the project's package manager and local binaries** (e.g. the
+  workspace's `tsc`, linter, test runner). Never reach for `npx` to run a tool the
+  project already depends on.
 
 ---
 
@@ -153,6 +163,8 @@ Before considering a task done or committing changes:
   whatever convention the repo uses.
 - Claude Code **may commit and push** when I explicitly ask for it.
   Do not commit or push autonomously otherwise.
+- **Confirm the target branch before committing.** For standalone work, branch off the
+  repo's main branch unless told otherwise; never reuse an unrelated feature branch.
 - Don't use `git -C <path> <subcommand>` when already in the repo directory.
   Run `git <subcommand>` directly.
 - **No test plan in PR descriptions** unless explicitly asked. Don't add a
