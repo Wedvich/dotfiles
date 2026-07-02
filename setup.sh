@@ -6,6 +6,9 @@ DOTFILES=$(realpath "$0")
 DOTFILES_PATH=$(dirname "$DOTFILES")
 ACTUAL_OLDPWD=$1
 
+[[ "$OSTYPE" == "darwin"* ]] && IS_MACOS=true || IS_MACOS=false
+[[ "$OSTYPE" == "linux-gnu"* ]] && IS_LINUX=true || IS_LINUX=false
+
 link_dotfiles() {
   local has_shown_message=false
   show_link_dotfiles_message() {
@@ -42,7 +45,7 @@ link_dotfiles() {
 }
 
 install_homebrew() {
-  if [[ "$OSTYPE" != "darwin"* ]]; then
+  if [[ "$IS_MACOS" != true ]]; then
     return
   fi
 
@@ -57,7 +60,7 @@ install_homebrew() {
 }
 
 install_tmux() {
-  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+  if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
@@ -101,7 +104,7 @@ install_zsh_plugins() {
 }
 
 install_starship() {
-  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+  if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
@@ -112,7 +115,7 @@ install_starship() {
 }
 
 install_fonts() {
-  if [[ "$OSTYPE" != "darwin"* ]]; then
+  if [[ "$IS_MACOS" != true ]]; then
     return
   fi
 
@@ -154,6 +157,10 @@ configure_git() {
 
   git config --global --get-all include.path | grep -q "$HOME/.gitconfig_dotfile" || git config --global --add include.path "$HOME/.gitconfig_dotfile"
 
+  if [[ "$IS_MACOS" == true ]]; then
+    git config --global credential.helper osxkeychain
+  fi
+
   local keys=(user.name user.email user.signingkey gpg.ssh.program gpg.ssh.allowedSignersFile)
 
   for i in "${keys[@]}"; do
@@ -175,7 +182,7 @@ configure_git() {
 }
 
 configure_xcode() {
-  if [[ "$OSTYPE" != "darwin"* ]]; then
+  if [[ "$IS_MACOS" != true ]]; then
     return
   fi
 
@@ -192,7 +199,7 @@ configure_xcode() {
 }
 
 install_pkgconfig() {
-  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+  if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
@@ -214,7 +221,7 @@ install_cargo() {
 }
 
 install_1password_cli() {
-  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+  if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
@@ -242,7 +249,7 @@ install_1password_cli() {
 }
 
 install_hyperfine() {
-  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+  if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
@@ -256,7 +263,7 @@ install_hyperfine() {
 }
 
 install_mise() {
-  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+  if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
@@ -272,7 +279,7 @@ install_mise() {
 }
 
 install_bat() {
-  if [[ "$OSTYPE" != "linux-gnu"* ]]; then
+  if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
@@ -320,7 +327,7 @@ main() {
   echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
   echo "• Install terminal themes\n  \\033[2mhttps://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related\\033[0m"
 
-  if [[ "$OSTYPE" == "darwin"* ]]; then
+  if [[ "$IS_MACOS" == true ]]; then
     echo "• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
   fi
 
