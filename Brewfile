@@ -15,7 +15,7 @@ brew "gopls"
 cask "raycast"
 cask "visual-studio-code"
 cask "firefox"
-cask "spotify"
+cask "1password"
 cask "1password-cli"
 cask "bluesnooze"
 

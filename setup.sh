@@ -324,11 +324,11 @@ main() {
   configure_git
 
   echo "\nManual steps:"
-  echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
-  echo "• Install terminal themes\n  \\033[2mhttps://github.com/sindresorhus/hyper-snazzy?tab=readme-ov-file#related\\033[0m"
 
   if [[ "$IS_MACOS" == true ]]; then
     echo "• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
+  else
+    echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
   fi
 
   local local_zshrc="$HOME/.zshrc.local"
