@@ -211,12 +211,16 @@ install_pkgconfig() {
 }
 
 install_cargo() {
-  if ! command -v eza >/dev/null 2>&1; then
-    cargo install eza
-  fi
-
   if ! command -v cargo-generate >/dev/null 2>&1; then
     cargo install cargo-generate
+  fi
+
+  if [[ "$IS_LINUX" != true ]]; then
+    return
+  fi
+
+  if ! command -v eza >/dev/null 2>&1; then
+    cargo install eza
   fi
 }
 
