@@ -8,39 +8,45 @@ DOTFILES_PATH=$(dirname "$DOTFILES")
 [[ "$OSTYPE" == "darwin"* ]] && IS_MACOS=true || IS_MACOS=false
 [[ "$OSTYPE" == "linux-gnu"* ]] && IS_LINUX=true || IS_LINUX=false
 
-link_dotfiles() {
-  local has_shown_message=false
-  show_link_dotfiles_message() {
-    if ! $has_shown_message; then
-      echo "Linking dotfiles..."
-      has_shown_message=true
-    fi
-  }
+typeset -A _shown
+show_once() {
+  [[ -n "${_shown[$1]}" ]] && return
+  _shown[$1]=1
+  echo "$2"
+}
 
+_apt_updated=false
+apt_update_once() {
+  [[ "$_apt_updated" == true ]] && return
+  sudo apt update -y
+  _apt_updated=true
+}
+
+apt_ensure() {
+  command -v "$1" >/dev/null 2>&1 && return
+  apt_update_once
+  echo "Installing $1..."
+  sudo apt install -y "${2:-$1}"
+}
+
+link_file() {
+  [ -e "$2" ] && [ "$2" -ef "$1" ] && return
+  show_once link "Linking dotfiles..."
+  ln -fsv "$1" "$2"
+}
+
+link_dotfiles() {
   local files=($(find "$DOTFILES_PATH" -maxdepth 1 -name '.*' -type f -not -name '.DS_Store'))
   files+="$DOTFILES_PATH/starship.toml"
 
   for i in "${files[@]}"; do
-    local file=$(basename $i)
-    local source="$DOTFILES_PATH/$file"
-    local target="$HOME/$file"
-
-    if [ -f "$target" ] && [ "$(readlink -f "$target")" = "$source" ] && [ "$target" -ef "$source" ]; then
-      continue
-    fi
-
-    show_link_dotfiles_message
-    ln -fsv "$source" "$target"
+    local file=$(basename "$i")
+    link_file "$DOTFILES_PATH/$file" "$HOME/$file"
   done
 
   # CLAUDE.md needs to go into ~/.claude/, not ~/
   mkdir -p "$HOME/.claude"
-  local claude_source="$DOTFILES_PATH/CLAUDE.md"
-  local claude_target="$HOME/.claude/CLAUDE.md"
-  if [ ! -f "$claude_target" ] || [ "$(readlink -f "$claude_target")" != "$claude_source" ] || [ ! "$claude_target" -ef "$claude_source" ]; then
-    show_link_dotfiles_message
-    ln -fsv "$claude_source" "$claude_target"
-  fi
+  link_file "$DOTFILES_PATH/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 }
 
 install_homebrew() {
@@ -63,48 +69,37 @@ install_homebrew() {
   brew bundle --file "$DOTFILES_PATH/Brewfile"
 }
 
-install_tmux() {
+install_apt_packages() {
   if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
-  if ! command -v tmux >/dev/null 2>&1; then
-    echo "Installing tmux..."
-    sudo apt install -y tmux
-  fi
+  apt_ensure tmux
+  apt_ensure pkg-config
+  apt_ensure hyperfine
+  apt_ensure bat
+  apt_ensure gpg gnupg
 }
 
 install_zsh_plugins() {
   local zsh="$HOME/.zsh"
   mkdir -p "$zsh"
 
-  local has_shown_message=false
-  show_install_zsh_plugins_message() {
-    if ! $has_shown_message; then
-      echo "Installing ZSH plugins..."
-      has_shown_message=true
+  local plugins=(
+    zsh-autosuggestions=zsh-users/zsh-autosuggestions
+    zsh-syntax-highlighting=zsh-users/zsh-syntax-highlighting
+    zsh-z=agkozak/zsh-z
+    zsh-autocomplete=marlonrichert/zsh-autocomplete
+  )
+
+  for plugin in "${plugins[@]}"; do
+    local dir="${plugin%%=*}"
+    local repo="${plugin#*=}"
+    if [ ! -d "$zsh/$dir" ]; then
+      show_once zsh_plugins "Installing ZSH plugins..."
+      git clone --depth 1 "https://github.com/$repo.git" "$zsh/$dir"
     fi
-  }
-
-  if [ ! -d "$zsh/zsh-autosuggestions" ]; then
-    show_install_zsh_plugins_message
-    git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions.git "$zsh/zsh-autosuggestions"
-  fi
-
-  if [ ! -d "$zsh/zsh-syntax-highlighting" ]; then
-    show_install_zsh_plugins_message
-    git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting.git "$zsh/zsh-syntax-highlighting"
-  fi
-
-  if [ ! -d "$zsh/zsh-z" ]; then
-    show_install_zsh_plugins_message
-    git clone --depth 1 https://github.com/agkozak/zsh-z.git "$zsh/zsh-z"
-  fi
-
-  if [ ! -d "$zsh/zsh-autocomplete" ]; then
-    show_install_zsh_plugins_message
-    git clone --depth 1 https://github.com/marlonrichert/zsh-autocomplete.git "$zsh/zsh-autocomplete"
-  fi
+  done
 }
 
 install_starship() {
@@ -133,14 +128,6 @@ install_rust() {
 }
 
 configure_git() {
-  local has_shown_message=false
-  show_configure_git_message() {
-    if ! $has_shown_message; then
-      echo "Validating Git config..."
-      has_shown_message=true
-    fi
-  }
-
   show_configure_git_warning() {
     echo "🔔 \\033[33m$1\\033[0m"
   }
@@ -155,7 +142,7 @@ configure_git() {
 
   for i in "${keys[@]}"; do
     if [ -z "$(git config --global --includes $i)" ]; then
-      show_configure_git_message
+      show_once configure_git "Validating Git config..."
       show_configure_git_warning "$i is missing"
     fi
   done
@@ -182,18 +169,6 @@ configure_xcode() {
   if [ "$xcode_version" != "$accepted_license_version" ]; then
     sudo xcodebuild -license accept;
   fi
-}
-
-install_pkgconfig() {
-  if [[ "$IS_LINUX" != true ]]; then
-    return
-  fi
-
-  if dpkg -s pkg-config >/dev/null 2>&1; then
-    return
-  fi
-
-  sudo apt install -y pkg-config
 }
 
 install_cargo() {
@@ -238,20 +213,6 @@ install_1password_cli() {
   sudo apt update -y && sudo apt install -y 1password-cli
 }
 
-install_hyperfine() {
-  if [[ "$IS_LINUX" != true ]]; then
-    return
-  fi
-
-  if command -v hyperfine >/dev/null 2>&1; then
-    return
-  fi
-
-  echo "Installing Hyperfine..."
-
-  sudo apt update -y && sudo apt install -y hyperfine
-}
-
 install_mise() {
   if [[ "$IS_LINUX" != true ]]; then
     return
@@ -268,15 +229,31 @@ install_mise() {
   fi
 }
 
-install_bat() {
+install_lang_tools() {
   if [[ "$IS_LINUX" != true ]]; then
     return
   fi
 
-  if ! command -v bat >/dev/null 2>&1; then
-    echo "Installing bat..."
-    sudo apt update -y && sudo apt install -y bat
+  if ! command -v mise >/dev/null 2>&1; then
+    return
   fi
+
+  mise use -g go@latest
+  mise use -g bun@latest
+  mise use -g "go:golang.org/x/tools/gopls@latest"
+}
+
+install_rtk() {
+  if [[ "$IS_LINUX" != true ]]; then
+    return
+  fi
+
+  if [ -x "$HOME/.local/bin/rtk" ]; then
+    return
+  fi
+
+  echo "Installing rtk..."
+  curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 }
 
 main() {
@@ -299,16 +276,15 @@ main() {
   configure_xcode
 
   install_homebrew
-  install_tmux
+  install_apt_packages
   install_zsh_plugins
   install_starship
-  install_pkgconfig
   install_rust
   install_cargo
   install_1password_cli
-  install_hyperfine
   install_mise
-  install_bat
+  install_lang_tools
+  install_rtk
 
   configure_git
 
