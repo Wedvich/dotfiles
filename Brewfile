@@ -18,6 +18,7 @@ cask "firefox"
 cask "1password"
 cask "1password-cli"
 cask "bluesnooze"
+cask "radix"
 
 mas "Microsoft To-Do", id: 1274495053
 mas "1Password for Safari", id: 1569813296
