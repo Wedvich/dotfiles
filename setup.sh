@@ -18,7 +18,7 @@ show_once() {
 _apt_updated=false
 apt_update_once() {
   [[ "$_apt_updated" == true ]] && return
-  sudo apt update -y
+  sudo apt update -qy
   _apt_updated=true
 }
 
@@ -26,7 +26,7 @@ apt_ensure() {
   command -v "$1" >/dev/null 2>&1 && return
   apt_update_once
   echo "Installing $1..."
-  sudo apt install -y "${2:-$1}"
+  sudo apt install -qy "${2:-$1}"
 }
 
 link_file() {
@@ -75,11 +75,15 @@ install_apt_packages() {
     return
   fi
 
+  apt_ensure curl
+  apt_ensure cc build-essential
   apt_ensure tmux
   apt_ensure pkg-config
   apt_ensure hyperfine
   apt_ensure bat
   apt_ensure gpg gnupg
+
+  pkg-config --exists openssl || { apt_update_once; echo "Installing libssl-dev..."; sudo apt install -qy libssl-dev; }
 }
 
 install_zsh_plugins() {
@@ -211,7 +215,7 @@ install_1password_cli() {
   curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
   sudo gpg --yes --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
 
-  sudo apt update -y && sudo apt install -y 1password-cli
+  sudo apt update -qy && sudo apt install -qy 1password-cli
 }
 
 install_mise() {
@@ -221,12 +225,11 @@ install_mise() {
 
   if ! command -v mise >/dev/null 2>&1; then
     echo "Installing mise..."
-    sudo apt update -y
     sudo install -dm 755 /etc/apt/keyrings
-    wget -qO - https://mise.jdx.dev/gpg-key.pub | gpg --dearmor | sudo tee /etc/apt/keyrings/mise-archive-keyring.gpg 1> /dev/null
-    echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=amd64] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
-    sudo apt update -y
-    sudo apt install -y mise
+    curl -fsSL https://mise.jdx.dev/gpg-key.pub | gpg --dearmor | sudo tee /etc/apt/keyrings/mise-archive-keyring.gpg 1> /dev/null
+    echo "deb [signed-by=/etc/apt/keyrings/mise-archive-keyring.gpg arch=$(dpkg --print-architecture)] https://mise.jdx.dev/deb stable main" | sudo tee /etc/apt/sources.list.d/mise.list
+    sudo apt update -qy
+    sudo apt install -qy mise
   fi
 }
 
