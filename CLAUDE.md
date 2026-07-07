@@ -25,29 +25,47 @@
 Prefer tilth MCP tools over built-in Read/Edit/Grep/Glob for source
 code:
 
-- `mcp__tilth__read` — primary file reader for code. Returns
-  hashlined output (`42:a3f| ...`) that serves as anchors for
-  `mcp__tilth__edit`. Small files come back whole; large files
-  return an outline with line ranges. Use the `section` arg to
-  pull just the lines you need (e.g. `44-89` or a markdown heading
-  like `## Installation`) instead of reading the whole file.
-- `mcp__tilth__edit` — primary editor for code. Uses hashes from
-  a prior `mcp__tilth__read` as anchors, so always read the target
-  section first. If the file has changed since the read, the edit
-  is rejected with current content — re-read and retry rather than
-  guessing or falling back to built-in Edit.
-- `mcp__tilth__search` — symbol-aware search. Tree-sitter finds
-  definitions, not just string matches; results show surrounding
-  file structure and a `── calls ──` footer for resolved callees.
-  Use `kind: "callers"` to find call sites of a symbol.
-- `mcp__tilth__deps` — imports + dependents for a file. Run this
-  before renaming exports or changing a module's public API to
-  check blast radius.
+- `mcp__tilth__tilth_read` — primary file reader for code. Returns
+  hashlined output (`42:a3f|content`) whose `line:hash` anchors are
+  required by `mcp__tilth__tilth_write`. Small files come back whole;
+  large files return an outline with line ranges. Use `section` (or
+  `sections` for several disjoint ranges) to pull just the lines you
+  need — e.g. `44-89` or a markdown heading like `## Installation` —
+  and `paths` to read several files in one call. `mode` picks the
+  view: `auto` (default), `full`, `signature` (declarations only),
+  `stripped` (comments/debug logs removed).
+- `mcp__tilth__tilth_write` — primary editor for code; replaces both
+  built-in Edit and Write, and can batch edits across multiple files
+  in one call. Default `hash` mode uses anchors from a prior
+  `tilth_read`, so always read the target section first. If the file
+  changed since the read, the edit is rejected and the response echoes
+  the current hashlines — re-anchor from those and retry rather than
+  guessing or falling back to built-in Edit. `overwrite`
+  mode writes a whole file (create-only unless `overwrite: true`);
+  `append` mode appends. Writes are confined to the project root —
+  paths outside it (e.g. a scratchpad) are refused.
+- `mcp__tilth__tilth_search` — symbol-aware search. Tree-sitter finds
+  definitions, not just string matches; results show surrounding file
+  structure and a `── calls ──` footer for resolved callees. Use
+  `kind: "callers"` for call sites of a symbol, or
+  `kind: "content"`/`"regex"` for literal or pattern text.
+- `mcp__tilth__tilth_grok` — everything about one symbol in a single
+  call: definition, signature, doc, callers, callees, siblings, tests.
+  Reach for this over `tilth_search` when the question is "understand
+  this symbol" rather than "find matches".
+- `mcp__tilth__tilth_deps` — imports + dependents for a file. Run this
+  before renaming exports or changing a module's public API to check
+  blast radius.
+- `mcp__tilth__tilth_diff` — structural, function-level diff; use
+  instead of `git diff` for a change overview (no args = uncommitted
+  changes). Pair with `tilth_read` to verify subagent edits (below).
+- `mcp__tilth__tilth_files` — glob-based file discovery (replaces
+  find/ls/glob). Use when you have no symbol or text to search for.
 
 Built-in Read/Edit are fine for non-code (markdown, JSON, configs).
 Built-in Grep (ripgrep) is fine for log files and plain text.
 
-After a subagent edits a file, `mcp__tilth__read` can serve stale (pre-edit)
+After a subagent edits a file, `mcp__tilth__tilth_read` can serve stale (pre-edit)
 content indefinitely — its per-process index isn't invalidated by external
 writes. Verify via `git diff` / `tilth_diff` before relying on a read.
 
