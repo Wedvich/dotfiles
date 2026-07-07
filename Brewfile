@@ -9,7 +9,6 @@ brew "mise"
 brew "pkg-config"
 brew "rtk"
 brew "starship"
-brew "thefuck"
 brew "tmux"
 brew "xz"
 

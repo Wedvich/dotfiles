@@ -49,11 +49,16 @@ install_homebrew() {
     return
   fi
 
+  local brew_prefix="/opt/homebrew"
+  if [[ "$(uname -m)" == "x86_64" ]]; then
+    brew_prefix="/usr/local"
+  fi
+
   if ! command -v brew >/dev/null 2>&1; then
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> "$HOME/.zshrc.local"
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+    (echo; echo "eval \"\$($brew_prefix/bin/brew shellenv)\"") >> "$HOME/.zshrc.local"
+    eval "$($brew_prefix/bin/brew shellenv)"
   fi
 
   brew bundle --file "$DOTFILES_PATH/Brewfile"
@@ -110,7 +115,7 @@ install_starship() {
 
   if ! command -v starship >/dev/null 2>&1; then
     echo "Installing Starship..."
-    curl -sS https://starship.rs/install.sh | sh -- -y
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
   fi
 }
 
@@ -170,14 +175,10 @@ configure_git() {
     fi
   done
 
-  if $has_shown_message; then
-    return
-  fi
-
-  if ! git remote -v | grep -q "https://github.com/Wedvich/dotfiles.git (fetch)"; then
+  if ! git -C "$DOTFILES_PATH" remote -v | grep -q "https://github.com/Wedvich/dotfiles.git (fetch)"; then
     echo "Converting git fetch URL from SSH to HTTPS"
-    git remote set-url origin https://github.com/Wedvich/dotfiles.git
-    git remote set-url origin --push git@github.com:Wedvich/dotfiles.git
+    git -C "$DOTFILES_PATH" remote set-url origin https://github.com/Wedvich/dotfiles.git
+    git -C "$DOTFILES_PATH" remote set-url origin --push git@github.com:Wedvich/dotfiles.git
   fi
 }
 
@@ -186,7 +187,7 @@ configure_xcode() {
     return
   fi
 
-  if ! command -v xcode-select >/dev/null 2>&1; then
+  if ! xcode-select -p >/dev/null 2>&1; then
     echo "Installing Xcode..."
     sudo xcode-select --install
   fi
