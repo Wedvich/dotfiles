@@ -118,23 +118,6 @@ install_starship() {
   fi
 }
 
-install_fonts() {
-  if [[ "$IS_MACOS" != true ]]; then
-    return
-  fi
-
-  local font_dir="/tmp/install_fonts"
-
-  rm -rf "$font_dir"
-  mkdir -p "$font_dir"
-  cd "$font_dir"
-  curl -sLO https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.tar.xz
-  unxz FiraCode.tar.xz
-  tar -xf FiraCode.tar
-  find . -type f -name '*.ttf' -exec cp '{}' "$HOME/Library/Fonts/" ';'
-  cd -
-}
-
 install_rust() {
   if ! command -v rustup >/dev/null 2>&1; then
     echo "Installing Rust..."
@@ -319,7 +302,6 @@ main() {
   install_tmux
   install_zsh_plugins
   install_starship
-  install_fonts
   install_pkgconfig
   install_rust
   install_cargo
