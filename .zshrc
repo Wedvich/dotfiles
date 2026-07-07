@@ -31,9 +31,7 @@ alias edot="code $HOME/dotfiles"
 # Functions
 updot() {
   echo "Updating dotfiles..."
-  cd "$HOME/dotfiles"
-  git pull
-  ./setup.sh $OLDPWD
+  (cd "$HOME/dotfiles" && git pull && ./setup.sh) && exec zsh
 }
 
 zsh_history_fix() {
