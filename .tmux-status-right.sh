@@ -16,6 +16,8 @@ for _p in $(_children "$pane_pid"); do
     _ssh_pids="$_ssh_pids $_pp"
   done
 done
+# word-splitting intended: $_ssh_pids is a space-separated PID list, one arg each
+# shellcheck disable=SC2086
 _ssh_cmds="$(ps -o command= -p $_ssh_pids 2>/dev/null | tr '\n' ' ')"
 case "$_ssh_cmds" in
   *ssh*) printf '#[fg=colour81]ssh ';;

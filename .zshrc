@@ -15,12 +15,7 @@ fi
 # Set up SSH agent bridge with Windows host on WSL2
 if [[ $(uname -r) == *WSL2* ]]; then
   source ~/.agent-bridge.sh
-  init-1pw() {
-    echo "removing previous socket..."
-    rm $SSH_AUTH_SOCK
-    echo "Starting SSH-Agent relay..."
-    (setsid socat UNIX-LISTEN:$SSH_AUTH_SOCK,fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
-  }
+  init-1pw() { start_1pw_relay }
 fi
 
 # Aliases
@@ -57,7 +52,7 @@ source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
 source ~/.zsh/zsh-z/zsh-z.plugin.zsh
 
 # Rust
-source "$HOME/.cargo/env"
+[ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
 
 # Mise
 eval "$(mise activate zsh)"
@@ -66,4 +61,4 @@ eval "$(mise activate zsh)"
 eval "$(starship init zsh)"
 
 # Local config
-source "$HOME/.zshrc.local"
+[ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
