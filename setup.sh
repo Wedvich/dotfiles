@@ -88,6 +88,28 @@ install_apt_packages() {
   pkg-config --exists openssl || { apt_update_once; echo "Installing libssl-dev..."; sudo apt install -qy libssl-dev; }
 }
 
+install_gh() {
+  if [[ "$IS_LINUX" != true ]]; then
+    return
+  fi
+
+  if command -v gh >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "Installing GitHub CLI..."
+
+  sudo mkdir -p -m 755 /etc/apt/keyrings
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+  sudo gpg --yes --dearmor --output /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+  sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+  sudo apt update -qy && sudo apt install -qy gh
+}
+
 install_zsh_plugins() {
   local zsh="$HOME/.zsh"
   mkdir -p "$zsh"
@@ -286,6 +308,7 @@ main() {
 
   install_homebrew
   install_apt_packages
+  install_gh
   install_zsh_plugins
   install_starship
   install_rust
