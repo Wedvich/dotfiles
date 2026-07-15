@@ -10,6 +10,8 @@ export NODE_COMPILE_CACHE="$HOME/.cache/nodejs-compile-cache"
 export MISE_NODE_COREPACK=true
 export COLORTERM=truecolor
 
+(( $(ulimit -n) < 65536 )) && ulimit -n 65536
+
 # Prepend ~/.local/bin. Guard instead of `typeset -U` because setup.sh sources
 # this file inside a function, where `typeset` would shadow path with an empty local.
 (( ${path[(I)$HOME/.local/bin]} )) || path=("$HOME/.local/bin" $path)
