@@ -22,8 +22,8 @@ if [ "$(uname -s)" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
   sentinel="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
   sudo touch "$sentinel"
   clt_labels=$(softwareupdate -l 2>/dev/null \
-    | grep -o 'Label: Command Line Tools for Xcode-[0-9.]*' \
-    | sed 's/^Label: //')
+    | grep -iE 'Label:.*Command Line Tools' \
+    | sed -E 's/.*Label: *//')
   clt_label=$(echo "$clt_labels" | sort -V 2>/dev/null | tail -1)
   [ -z "$clt_label" ] && clt_label=$(echo "$clt_labels" | tail -1)
   if [ -n "$clt_label" ]; then
