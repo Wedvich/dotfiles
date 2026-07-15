@@ -62,8 +62,6 @@ install_homebrew() {
   if ! command -v brew >/dev/null 2>&1; then
     echo "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    local shellenv="eval \"\$($brew_prefix/bin/brew shellenv)\""
-    grep -qF "$shellenv" "$HOME/.zshrc.local" 2>/dev/null || (echo; echo "$shellenv") >> "$HOME/.zshrc.local"
     eval "$($brew_prefix/bin/brew shellenv)"
   fi
 

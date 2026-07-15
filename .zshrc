@@ -1,3 +1,8 @@
+# Homebrew (macOS) — must run before tmux/mise/starship below
+for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+  [ -x "$_brew" ] && eval "$("$_brew" shellenv)" && break
+done
+
 # Create or attach to tmux session if not already in one
 if [ -z "$TMUX" ]; then
   if tmux has-session -t main >/dev/null 2>&1; then

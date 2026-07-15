@@ -50,6 +50,9 @@ if [ ! -f "$dotfiles/setup.sh" ]; then
   dotfiles="$HOME/dotfiles"
   if [ ! -d "$dotfiles" ]; then
     git clone https://github.com/Wedvich/dotfiles.git "$dotfiles"
+  elif [ -d "$dotfiles/.git" ]; then
+    echo "Updating dotfiles..."
+    git -C "$dotfiles" pull --ff-only || echo "Could not fast-forward dotfiles; using existing checkout" >&2
   fi
 fi
 cd "$dotfiles"
