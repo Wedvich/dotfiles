@@ -47,6 +47,10 @@ link_dotfiles() {
   # CLAUDE.md needs to go into ~/.claude/, not ~/
   mkdir -p "$HOME/.claude"
   link_file "$DOTFILES_PATH/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+
+  # Ghostty reads $XDG_CONFIG_HOME/ghostty/config on both macOS and Linux
+  mkdir -p "$HOME/.config/ghostty"
+  link_file "$DOTFILES_PATH/ghostty.config" "$HOME/.config/ghostty/config"
 }
 
 install_homebrew() {
