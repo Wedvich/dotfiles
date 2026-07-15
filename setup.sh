@@ -164,9 +164,10 @@ configure_xcode() {
     return
   fi
 
-  if ! xcode-select -p >/dev/null 2>&1; then
-    echo "Installing Xcode..."
-    sudo xcode-select --install
+  # Xcode Command Line Tools are installed by bootstrap.sh. Only full Xcode.app
+  # requires license acceptance.
+  if [ ! -d /Applications/Xcode.app ]; then
+    return
   fi
 
   local xcode_version=`xcodebuild -version | grep '^Xcode\s' | sed -E 's/^Xcode[[:space:]]+([0-9\.]+)/\1/'`

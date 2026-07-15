@@ -14,7 +14,7 @@ This clones the repo to `~/dotfiles` if it isn't already there.
 
 ```bash
 docker run --rm -it -v ~/dotfiles:/work:ro -w /work ubuntu:24.04 \
- bash -c "apt update -qy && apt install -qy sudo git curl ca-certificates && bash bootstrap.sh";
+ bash -c "apt update -qy && apt install -qy sudo git curl ca-certificates && git config --global --add safe.directory /work && bash bootstrap.sh";
 ```
 
-Runs the local checkout against a fresh Ubuntu container. The read-only mount catches any accidental writes to the repo itself.
+Runs the local checkout against a fresh Ubuntu container. The read-only mount catches any accidental writes to the repo itself; `safe.directory` is needed because the mounted repo is owned by the host UID, not the container's root.
