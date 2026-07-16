@@ -16,5 +16,8 @@ export COLORTERM=truecolor
 # this file inside a function, where `typeset` would shadow path with an empty local.
 (( ${path[(I)$HOME/.local/bin]} )) || path=("$HOME/.local/bin" $path)
 
+# mise shims — covers non-interactive shells & tools that don't run `mise activate`.
+(( ${path[(I)$HOME/.local/share/mise/shims]} )) || path=("$HOME/.local/share/mise/shims" $path)
+
 skip_global_compinit=1
 fpath+="$HOME/.zfunc"
