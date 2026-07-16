@@ -210,6 +210,15 @@ install_rust() {
   rustup completions zsh > "$HOME/.zfunc/_rustup"
 }
 
+install_claude() {
+  if command -v claude >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "Installing Claude Code..."
+  curl -fsSL https://claude.ai/install.sh | bash
+}
+
 configure_git() {
   show_configure_git_warning() {
     echo "🔔 \\033[33m$1\\033[0m"
@@ -394,6 +403,7 @@ main() {
   install_mise
   install_lang_tools
   install_rtk
+  install_claude
 
   configure_git
   configure_claude
