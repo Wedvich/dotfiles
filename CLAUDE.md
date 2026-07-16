@@ -78,8 +78,7 @@ the two tools are complementary — use each for what it's best at:
   (fast, build-free, name-based).
 - **LSP** — escalate to it when correctness of _semantics_ is the question:
   precise find-references on an ambiguous/overloaded symbol, go-to-definition
-  through re-exports, type/hover info, pre-compile diagnostics, and
-  semantically-correct renames.
+  through re-exports, type/hover info, and pre-compile diagnostics.
 
 Default to tilth; reach for the LSP when name-based matching isn't trustworthy
 enough.
