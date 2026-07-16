@@ -54,6 +54,58 @@ link_dotfiles() {
   link_file "$DOTFILES_PATH/ghostty.config" "$HOME/.config/ghostty/config"
 }
 
+configure_claude() {
+  local settings="$HOME/.claude/settings.json"
+
+  local schema='"https://json.schemastore.org/claude-code-settings.json"'
+
+  local status_line='{
+    "type": "command",
+    "command": "bash '"$HOME"'/.claude/statusline-command.sh"
+  }'
+
+  # Ring the terminal bell on notifications.
+  local notification='[
+    {
+      "matcher": "",
+      "hooks": [
+        { "type": "command", "command": "jq -nc '"'"'{terminalSequence: \"\\u0007\"}'"'"'" }
+      ]
+    }
+  ]'
+
+  mkdir -p "$HOME/.claude"
+  # Guard against a missing OR malformed file: either would break every jq call
+  # below, and a corrupt file would otherwise leave the run stuck on the same
+  # parse error forever. Back up anything unparseable before recreating it.
+  if [ ! -f "$settings" ]; then
+    echo '{}' > "$settings"
+  elif ! jq empty "$settings" >/dev/null 2>&1; then
+    local backup="$settings.corrupt.$(date +%Y%m%dT%H%M%S)"
+    echo "Warning: $settings is not valid JSON; backing up to $backup and recreating." >&2
+    mv "$settings" "$backup"
+    echo '{}' > "$settings"
+  fi
+
+  # Idempotent: only rewrite when the desired config isn't already applied.
+  if jq --argjson sc "$schema" --argjson sl "$status_line" --argjson nf "$notification" -e \
+    '.["$schema"] == $sc and .env.USE_BUILTIN_RIPGREP == "0"
+      and .tui == "fullscreen" and .skipDangerousModePermissionPrompt == true
+      and .statusLine == $sl and .hooks.Notification == $nf
+      and (keys_unsorted[0]) == "$schema"' "$settings" >/dev/null 2>&1; then
+    return
+  fi
+
+  show_once claude "Configuring Claude Code..."
+  local tmp=$(mktemp)
+  # Keep "$schema" as the first key by rebuilding the object with it up front.
+  jq --argjson sc "$schema" --argjson sl "$status_line" --argjson nf "$notification" \
+    '.env.USE_BUILTIN_RIPGREP = "0" | .tui = "fullscreen"
+      | .skipDangerousModePermissionPrompt = true
+      | .statusLine = $sl | .hooks.Notification = $nf
+      | {"$schema": $sc} + del(.["$schema"])' "$settings" > "$tmp" && mv "$tmp" "$settings"
+}
+
 install_homebrew() {
   if [[ "$IS_MACOS" != true ]]; then
     return
@@ -83,6 +135,7 @@ install_apt_packages() {
   apt_ensure tmux
   apt_ensure pkg-config
   apt_ensure hyperfine
+  apt_ensure jq
   apt_ensure bat
   apt_ensure gpg gnupg
 
@@ -343,6 +396,7 @@ main() {
   install_rtk
 
   configure_git
+  configure_claude
 
   echo "\nManual steps:"
 
