@@ -201,6 +201,28 @@ configure_xcode() {
   fi
 }
 
+configure_maxfiles() {
+  if [[ "$IS_MACOS" != true ]]; then
+    return
+  fi
+
+  local src="$DOTFILES_PATH/limit.maxfiles.plist"
+  local dst="/Library/LaunchDaemons/limit.maxfiles.plist"
+
+  # launchd requires the daemon be root-owned and not a symlink, so copy rather
+  # than link. Skip when the installed copy already matches.
+  cmp -s "$src" "$dst" 2>/dev/null && return
+
+  echo "Installing launchd open-file limit daemon (limit.maxfiles)..."
+  sudo cp "$src" "$dst"
+  sudo chown root:wheel "$dst"
+  sudo chmod 644 "$dst"
+
+  # bootout first so a re-run reloads changed limits; ignore "not loaded".
+  sudo launchctl bootout system "$dst" 2>/dev/null || true
+  sudo launchctl bootstrap system "$dst"
+}
+
 install_cargo() {
   if ! command -v cargo-generate >/dev/null 2>&1; then
     cargo install cargo-generate
@@ -305,6 +327,7 @@ main() {
   link_dotfiles
 
   configure_xcode
+  configure_maxfiles
 
   install_homebrew
   install_apt_packages
