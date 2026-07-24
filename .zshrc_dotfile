@@ -64,6 +64,3 @@ eval "$(mise activate zsh)"
 
 # Init Starship prompt
 eval "$(starship init zsh)"
-
-# Local config
-[ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"

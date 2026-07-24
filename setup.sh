@@ -248,6 +248,26 @@ configure_git() {
   fi
 }
 
+configure_zsh() {
+  local rc="$HOME/.zshrc"
+  local source_line='[ -f "$HOME/.zshrc_dotfile" ] && source "$HOME/.zshrc_dotfile"'
+
+  [ -L "$rc" ] && rm "$rc"
+
+  if [ ! -f "$rc" ]; then
+    echo "$source_line" > "$rc"
+  elif ! grep -qF '.zshrc_dotfile' "$rc"; then
+    show_once configure_zsh "Configuring .zshrc..."
+    printf '%s\n%s\n' "$source_line" "$(cat "$rc")" > "$rc"
+  fi
+
+  if [ -f "$HOME/.zshrc.local" ]; then
+    show_once configure_zsh "Migrating ~/.zshrc.local into ~/.zshrc..."
+    grep -v 'brew shellenv' "$HOME/.zshrc.local" | sed '/./,$!d' >> "$rc"
+    rm "$HOME/.zshrc.local"
+  fi
+}
+
 configure_xcode() {
   if [[ "$IS_MACOS" != true ]]; then
     return
@@ -387,8 +407,6 @@ main() {
 
   source "$DOTFILES_PATH/.zshenv"
 
-  [[ -f "$HOME/.zshrc.local" ]] || touch "$HOME/.zshrc.local"
-
   link_dotfiles
 
   configure_xcode
@@ -408,6 +426,7 @@ main() {
   install_claude
 
   configure_git
+  configure_zsh
   configure_claude
 
   echo "\nManual steps:"
