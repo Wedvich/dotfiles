@@ -1,3 +1,4 @@
 # Machine signing keys for git verify-commit (gpg.ssh.allowedSignersFile).
 # One line per enrolled machine; setup.sh prints the line when enrolling.
 * namespaces="git" ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBNxgWC5wKWncMl9Y1SlNzX/2fkTFVdJ4MpzM0y4YFQTZJZrtrGUariVKBN/ybpCRj0npopzR9lbV13MLkdaMwKY= signing-macbook-m4-enclave
+* namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINX1ftH4UeE/HMhRNtzp2XMPYoORwICdFpLo6QAK+OG+ signing-wsl
