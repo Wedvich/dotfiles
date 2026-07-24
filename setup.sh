@@ -246,10 +246,15 @@ configure_git() {
     fi
   done
 
-  if ! git -C "$DOTFILES_PATH" remote -v | grep -q "https://github.com/Wedvich/dotfiles.git (fetch)"; then
-    echo "Converting git fetch URL from SSH to HTTPS"
+  # Fetch and push both over HTTPS, authenticated by the gh credential helper.
+  if [ "$(git -C "$DOTFILES_PATH" remote get-url origin)" != "https://github.com/Wedvich/dotfiles.git" ]; then
+    echo "Converting git remote URL from SSH to HTTPS"
     git -C "$DOTFILES_PATH" remote set-url origin https://github.com/Wedvich/dotfiles.git
-    git -C "$DOTFILES_PATH" remote set-url origin --push git@github.com:Wedvich/dotfiles.git
+  fi
+
+  if git -C "$DOTFILES_PATH" config --get remote.origin.pushurl >/dev/null; then
+    echo "Removing legacy SSH push URL"
+    git -C "$DOTFILES_PATH" config --unset-all remote.origin.pushurl
   fi
 }
 
