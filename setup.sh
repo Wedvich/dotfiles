@@ -49,6 +49,9 @@ link_dotfiles() {
   link_file "$DOTFILES_PATH/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
   link_file "$DOTFILES_PATH/statusline-command.sh" "$HOME/.claude/statusline-command.sh"
 
+  mkdir -p "$HOME/.claude/commands"
+  link_file "$DOTFILES_PATH/spawn.md" "$HOME/.claude/commands/spawn.md"
+
   # Ghostty reads $XDG_CONFIG_HOME/ghostty/config on both macOS and Linux
   mkdir -p "$HOME/.config/ghostty"
   link_file "$DOTFILES_PATH/ghostty.config" "$HOME/.config/ghostty/config"
