@@ -272,57 +272,29 @@ configure_zsh() {
 
 _signing_key_changed=false
 configure_signing() {
-  # Per-machine, signing-only keys that never prompt. The 1Password key stays
-  # for interactive SSH auth; these keys exist so unattended Claude Code
-  # sessions (remote control) can sign commits. Blast radius if stolen:
-  # forged signatures until revoked on GitHub - no repo access.
+  # Per-machine, signing-only file keys that never prompt. The 1Password key
+  # stays for interactive SSH auth; these keys exist so unattended Claude Code
+  # sessions (remote control) can sign commits - including while the screen is
+  # locked, which rules out Secure Enclave keys (Secretive hardcodes
+  # kSecAttrAccessibleWhenUnlockedThisDeviceOnly; maxgoedjen/secretive#462).
+  # Extractable, accepted: signing-only scope + per-machine revocation keeps
+  # the downside bounded - forged signatures until revoked, no repo access.
 
   git config --global gpg.ssh.allowedSignersFile "$HOME/.allowed_signers"
 
-  if [[ "$IS_MACOS" == true ]]; then
-    # Secure Enclave via Secretive: non-extractable, hardware-bound.
-    local secretive_data="$HOME/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data"
+  local key="$HOME/.ssh/git-signing"
 
-    if [ ! -d "$secretive_data" ]; then
-      # Launching the app once creates the container + agent; key creation is
-      # GUI-only, so this lands in the manual steps below.
-      return
-    fi
-
-    local pubs=("$secretive_data/PublicKeys"/*.pub(N))
-    if (( ${#pubs} == 0 )); then
-      return
-    elif (( ${#pubs} > 1 )); then
-      show_once signing "Configuring commit signing..."
-      echo "🔔 \\033[33mMultiple Secretive keys found - set user.signingkey manually\\033[0m"
-      return
-    fi
-
-    if [[ "$(git config --global user.signingkey)" != "${pubs[1]}" ]]; then
-      show_once signing "Configuring commit signing..."
-      git config --global gpg.ssh.program "$HOME/.secretive-sign.sh"
-      git config --global user.signingkey "${pubs[1]}"
-      _signing_key_changed=true
-    fi
+  if [ ! -f "$key" ]; then
+    show_once signing "Configuring commit signing..."
+    mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+    ssh-keygen -t ed25519 -f "$key" -N "" -C "signing-$(hostname -s)" -q
   fi
 
-  if [[ "$IS_LINUX" == true ]]; then
-    # Plain file key inside WSL. Extractable, accepted: signing-only scope +
-    # per-machine revocation keeps the downside bounded.
-    local key="$HOME/.ssh/git-signing"
-
-    if [ ! -f "$key" ]; then
-      show_once signing "Configuring commit signing..."
-      mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-      ssh-keygen -t ed25519 -f "$key" -N "" -C "signing-wsl-$(hostname)" -q
-    fi
-
-    if [[ "$(git config --global user.signingkey)" != "$key" ]]; then
-      show_once signing "Configuring commit signing..."
-      git config --global gpg.ssh.program ssh-keygen
-      git config --global user.signingkey "$key"
-      _signing_key_changed=true
-    fi
+  if [[ "$(git config --global user.signingkey)" != "$key" ]]; then
+    show_once signing "Configuring commit signing..."
+    git config --global gpg.ssh.program ssh-keygen
+    git config --global user.signingkey "$key"
+    _signing_key_changed=true
   fi
 }
 
@@ -332,10 +304,8 @@ check_allowed_signers() {
   local signingkey=$(git config --global --includes user.signingkey)
   [ -z "$signingkey" ] && return
 
-  # user.signingkey is a path to either a private key (WSL) or a public key
-  # (Secretive); normalize to the public half.
-  local pubfile="$signingkey"
-  [[ "$pubfile" != *.pub ]] && pubfile="$signingkey.pub"
+  # user.signingkey is the private key path; check the public half.
+  local pubfile="$signingkey.pub"
   [ -f "$pubfile" ] || return
 
   local pubkey=$(awk '{print $1" "$2}' "$pubfile")
@@ -546,10 +516,6 @@ main() {
     echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
   fi
 
-  local secretive_pubs=("$HOME/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/PublicKeys"/*.pub(N))
-  if [[ "$IS_MACOS" == true ]] && (( ${#secretive_pubs} == 0 )); then
-    echo "• Open Secretive once, create a key: name \\033[2msigning-macbook-m4-enclave\\033[0m, ECDSA-P256, \\033[2mAuthentication: not required\\033[0m - then re-run setup"
-  fi
   if [[ "$_signing_key_changed" == true ]]; then
     echo "• Add this machine's signing key on GitHub as key type \\033[2mSigning Key\\033[0m\n  \\033[2mhttps://github.com/settings/ssh/new\\033[0m"
   fi
