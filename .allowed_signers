@@ -2,3 +2,4 @@
 # One line per enrolled machine; setup.sh prints the line when enrolling.
 * namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINX1ftH4UeE/HMhRNtzp2XMPYoORwICdFpLo6QAK+OG+ signing-wsl
 * namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEBrgoHzJX3lc7bG5G83mpsOoWdJWi1+ZHHG45PdQoih signing-macbook-m4
+* namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBGpaRjyMFudi0Jdb49e/DkDgRzNJ9tIbde+wD9JSzPq signing-macbook-m3
