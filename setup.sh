@@ -91,6 +91,7 @@ configure_claude() {
   if jq --argjson sc "$schema" --argjson sl "$status_line" --argjson nf "$notification" -e \
     '.["$schema"] == $sc and .env.USE_BUILTIN_RIPGREP == "0"
       and .tui == "fullscreen" and .skipDangerousModePermissionPrompt == true
+      and .remoteControlAtStartup == true
       and .statusLine == $sl and .hooks.Notification == $nf
       and (keys_unsorted[0]) == "$schema"' "$settings" >/dev/null 2>&1; then
     return
@@ -102,6 +103,7 @@ configure_claude() {
   jq --argjson sc "$schema" --argjson sl "$status_line" --argjson nf "$notification" \
     '.env.USE_BUILTIN_RIPGREP = "0" | .tui = "fullscreen"
       | .skipDangerousModePermissionPrompt = true
+      | .remoteControlAtStartup = true
       | .statusLine = $sl | .hooks.Notification = $nf
       | {"$schema": $sc} + del(.["$schema"])' "$settings" > "$tmp" && mv "$tmp" "$settings"
 }
