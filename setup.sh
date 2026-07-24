@@ -124,7 +124,7 @@ install_homebrew() {
     eval "$($brew_prefix/bin/brew shellenv)"
   fi
 
-  brew bundle --file "$DOTFILES_PATH/Brewfile"
+  brew bundle --file "$DOTFILES_PATH/Brewfile" --quiet
 }
 
 install_apt_packages() {
@@ -229,10 +229,12 @@ configure_git() {
   git config --global --get-all include.path | grep -q "$HOME/.gitconfig_dotfile" || git config --global --add include.path "$HOME/.gitconfig_dotfile"
 
   if [[ "$IS_MACOS" == true ]]; then
-    git config --global credential.helper osxkeychain
+    git config --system --unset-all credential.helper 2>/dev/null || true
+    git config --global --unset-all credential.helper 2>/dev/null || true
+    git config --global credential.helper manager
   fi
 
-  local keys=(user.name user.email user.signingkey gpg.ssh.program gpg.ssh.allowedSignersFile)
+  local keys=(user.name user.email)
 
   for i in "${keys[@]}"; do
     if [ -z "$(git config --global --includes $i)" ]; then
@@ -265,6 +267,110 @@ configure_zsh() {
     show_once configure_zsh "Migrating ~/.zshrc.local into ~/.zshrc..."
     grep -v 'brew shellenv' "$HOME/.zshrc.local" | sed '/./,$!d' >> "$rc"
     rm "$HOME/.zshrc.local"
+  fi
+}
+
+_signing_key_changed=false
+configure_signing() {
+  # Per-machine, signing-only keys that never prompt. The 1Password key stays
+  # for interactive SSH auth; these keys exist so unattended Claude Code
+  # sessions (remote control) can sign commits. Blast radius if stolen:
+  # forged signatures until revoked on GitHub - no repo access.
+
+  git config --global gpg.ssh.allowedSignersFile "$HOME/.allowed_signers"
+
+  if [[ "$IS_MACOS" == true ]]; then
+    # Secure Enclave via Secretive: non-extractable, hardware-bound.
+    local secretive_data="$HOME/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data"
+
+    if [ ! -d "$secretive_data" ]; then
+      # Launching the app once creates the container + agent; key creation is
+      # GUI-only, so this lands in the manual steps below.
+      return
+    fi
+
+    local pubs=("$secretive_data/PublicKeys"/*.pub(N))
+    if (( ${#pubs} == 0 )); then
+      return
+    elif (( ${#pubs} > 1 )); then
+      show_once signing "Configuring commit signing..."
+      echo "🔔 \\033[33mMultiple Secretive keys found - set user.signingkey manually\\033[0m"
+      return
+    fi
+
+    if [[ "$(git config --global user.signingkey)" != "${pubs[1]}" ]]; then
+      show_once signing "Configuring commit signing..."
+      git config --global gpg.ssh.program "$HOME/.secretive-sign.sh"
+      git config --global user.signingkey "${pubs[1]}"
+      _signing_key_changed=true
+    fi
+  fi
+
+  if [[ "$IS_LINUX" == true ]]; then
+    # Plain file key inside WSL. Extractable, accepted: signing-only scope +
+    # per-machine revocation keeps the downside bounded.
+    local key="$HOME/.ssh/git-signing"
+
+    if [ ! -f "$key" ]; then
+      show_once signing "Configuring commit signing..."
+      mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+      ssh-keygen -t ed25519 -f "$key" -N "" -C "signing-wsl-$(hostname)" -q
+    fi
+
+    if [[ "$(git config --global user.signingkey)" != "$key" ]]; then
+      show_once signing "Configuring commit signing..."
+      git config --global gpg.ssh.program ssh-keygen
+      git config --global user.signingkey "$key"
+      _signing_key_changed=true
+    fi
+  fi
+}
+
+check_allowed_signers() {
+  # Keys are committed with wildcard principals so every machine can verify
+  # every machine's commits, while email addresses stay out of the repo.
+  local signingkey=$(git config --global --includes user.signingkey)
+  [ -z "$signingkey" ] && return
+
+  # user.signingkey is a path to either a private key (WSL) or a public key
+  # (Secretive); normalize to the public half.
+  local pubfile="$signingkey"
+  [[ "$pubfile" != *.pub ]] && pubfile="$signingkey.pub"
+  [ -f "$pubfile" ] || return
+
+  local pubkey=$(awk '{print $1" "$2}' "$pubfile")
+  if ! grep -qF "$pubkey" "$DOTFILES_PATH/.allowed_signers" 2>/dev/null; then
+    echo "🔔 \\033[33mThis machine's signing key is not in .allowed_signers - add and commit:\\033[0m"
+    echo "* namespaces=\"git\" $pubkey"
+  fi
+}
+
+configure_credentials() {
+  # HTTPS push credentials for unattended sessions. Scoped, expiring,
+  # revocable - unlike an SSH auth key.
+
+  # GitHub: gh acts as the credential helper, holding this machine's
+  # fine-grained PAT (Contents RW on selected repos only, 90-day expiry).
+  if gh auth status >/dev/null 2>&1; then
+    gh auth setup-git 2>/dev/null
+  fi
+
+  # Azure DevOps: Git Credential Manager with Entra OAuth (short-lived,
+  # silently refreshing tokens). Scoped to dev.azure.com so it doesn't fight
+  # osxkeychain/gh elsewhere; the leading empty helper resets inherited ones.
+  local gcm=""
+  if [[ "$IS_MACOS" == true ]] && command -v git-credential-manager >/dev/null 2>&1; then
+    gcm="manager"
+  elif [[ "$IS_LINUX" == true ]] && [ -x "/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe" ]; then
+    # WSL: reuse the Windows-side GCM so the OAuth browser dance happens in
+    # Windows and tokens live in the Windows credential store.
+    gcm="/mnt/c/Program\\ Files/Git/mingw64/bin/git-credential-manager.exe"
+  fi
+
+  if [ -n "$gcm" ]; then
+    git config --global --replace-all credential.https://dev.azure.com.helper ""
+    git config --global --add credential.https://dev.azure.com.helper "$gcm"
+    git config --global credential.https://dev.azure.com.useHttpPath true
   fi
 }
 
@@ -427,6 +533,9 @@ main() {
 
   configure_git
   configure_zsh
+  configure_signing
+  check_allowed_signers
+  configure_credentials
   configure_claude
 
   echo "\nManual steps:"
@@ -435,6 +544,17 @@ main() {
     echo "• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
   else
     echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
+  fi
+
+  local secretive_pubs=("$HOME/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/PublicKeys"/*.pub(N))
+  if [[ "$IS_MACOS" == true ]] && (( ${#secretive_pubs} == 0 )); then
+    echo "• Open Secretive once, create a key: name \\033[2msigning-macbook-m4-enclave\\033[0m, ECDSA-P256, \\033[2mAuthentication: not required\\033[0m - then re-run setup"
+  fi
+  if [[ "$_signing_key_changed" == true ]]; then
+    echo "• Add this machine's signing key on GitHub as key type \\033[2mSigning Key\\033[0m\n  \\033[2mhttps://github.com/settings/ssh/new\\033[0m"
+  fi
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "• Create this machine's fine-grained PAT and run \\033[2mgh auth login\\033[0m with it\n  \\033[2mhttps://github.com/settings/personal-access-tokens/new\\033[0m"
   fi
 
   echo "\n\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m"
