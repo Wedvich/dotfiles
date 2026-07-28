@@ -25,7 +25,7 @@ fi
 
 # Aliases
 alias esh="exec zsh"
-alias ls="eza --icons"
+alias ls="eza --icons=auto"
 alias edot="code $HOME/dotfiles"
 
 # Functions
