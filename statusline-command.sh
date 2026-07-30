@@ -5,7 +5,7 @@
 # concurrent sessions never cross-contaminate: each invocation sees only its
 # own session's payload.
 #
-# Layout (whole line gray; absolute context tokens turn yellow above 120k):
+# Layout (whole line gray; absolute context tokens turn yellow above 150k):
 #   Opus 4.8 (high)  <ctx> 187k (19%)  <lim> 24% (5h) 41% (7d)
 #
 # Missing-data policy (hybrid): effort omits its parens when absent; context
@@ -55,7 +55,7 @@ line+=" · ${ICON_CTX} "
 if [[ -z $tok_human ]]; then
 	line+="–"
 else
-	if [[ -n $tok_raw && $tok_raw -gt 120000 ]]; then
+	if [[ -n $tok_raw && $tok_raw -gt 150000 ]]; then
 		line+="${RST}${YEL}${tok_human}${RST}${GRAY}"
 	else
 		line+="${tok_human}"
