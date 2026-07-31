@@ -82,7 +82,11 @@ else
 	launch_dir="$main_root"
 	wt_flag="--worktree $worktree_name"
 	wt_path="$main_root/.claude/worktrees/$worktree_name"
-	preamble="You are a new independent Claude session in a FRESH git worktree at $wt_path, on branch worktree-$worktree_name. Before starting the task, set this worktree up per the repo's own docs (check CLAUDE.md's worktree-setup section and/or README), including copying any .env from the main checkout at ${main_root}."
+	preamble="You are a new independent Claude session in a FRESH git worktree at $wt_path, on branch worktree-$worktree_name.
+
+Worktree setup — installing dependencies, copying any .env from the main checkout at ${main_root}, and whatever else the repo's own docs prescribe (CLAUDE.md's worktree-setup section and/or README) — is NOT an automatic first step. Judge from the task whether it's needed:
+- Skip it entirely for read-only work: answering a question, reading or explaining code, research, reviewing a diff, or acting through MCP servers (Teams/Slack messages, Linear, Jira, docs lookups).
+- Otherwise do it — only the parts you need — at the moment you first have to install, build, typecheck, lint, run tests, or run the app. Setting up late is fine; a full setup you never use is waste."
 fi
 
 # --- build the inner command ---
