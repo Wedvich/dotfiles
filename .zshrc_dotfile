@@ -3,6 +3,9 @@ for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
   [ -x "$_brew" ] && eval "$("$_brew" shellenv)" && break
 done
 
+# Homebrew installs GNU make as gmake; prepend gnubin so `make` beats Apple's 3.81
+[ -d "$HOMEBREW_PREFIX/opt/make/libexec/gnubin" ] && path=("$HOMEBREW_PREFIX/opt/make/libexec/gnubin" $path)
+
 # Create or attach to tmux session if not already in one
 if [ -z "$TMUX" ]; then
   if tmux has-session -t main >/dev/null 2>&1; then
@@ -59,7 +62,8 @@ source ~/.zsh/zsh-z/zsh-z.plugin.zsh
 # Rust
 [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
 
-# Mise
+# Mise — drop inherited session state (via tmux/exec) first
+unset -m '__MISE_*' 2>/dev/null
 eval "$(mise activate zsh)"
 
 # Init Starship prompt
