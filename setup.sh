@@ -248,17 +248,24 @@ configure_git() {
 }
 
 configure_zsh() {
-  local rc="$HOME/.zshrc"
-  local source_line='[ -f "$HOME/.zshrc_dotfile" ] && source "$HOME/.zshrc_dotfile"'
+  # ~/.zshrc and ~/.zshenv stay per-machine and source the linked dotfiles
+  # halves. .zshenv is the split that reaches non-interactive shells (tmux
+  # spawns, seance sessions) — per-machine env exports belong there.
+  local file
+  for file in .zshrc .zshenv; do
+    local target="$HOME/$file"
+    local dotfile="${file}_dotfile"
+    local source_line="[ -f \"\$HOME/$dotfile\" ] && source \"\$HOME/$dotfile\""
 
-  [ -L "$rc" ] && rm "$rc"
+    [ -L "$target" ] && rm "$target"
 
-  if [ ! -f "$rc" ]; then
-    echo "$source_line" > "$rc"
-  elif ! grep -qF '.zshrc_dotfile' "$rc"; then
-    show_once configure_zsh "Configuring .zshrc..."
-    printf '%s\n%s\n' "$source_line" "$(cat "$rc")" > "$rc"
-  fi
+    if [ ! -f "$target" ]; then
+      echo "$source_line" > "$target"
+    elif ! grep -qF "$dotfile" "$target"; then
+      show_once configure_zsh "Configuring $file..."
+      printf '%s\n%s\n' "$source_line" "$(cat "$target")" > "$target"
+    fi
+  done
 
   if [ -f "$HOME/.zshrc.local" ]; then
     show_once configure_zsh "Migrating ~/.zshrc.local into ~/.zshrc..."
@@ -478,7 +485,7 @@ main() {
   echo "\\033[2mversion: \\033[0m$git_sha"
   echo "\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m\n"
 
-  source "$DOTFILES_PATH/.zshenv"
+  source "$DOTFILES_PATH/.zshenv_dotfile"
 
   link_dotfiles
 
