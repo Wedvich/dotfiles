@@ -141,7 +141,6 @@ install_apt_packages() {
   apt_ensure pkg-config
   apt_ensure hyperfine
   apt_ensure jq
-  apt_ensure bat
   apt_ensure gpg gnupg
 
   pkg-config --exists openssl || { apt_update_once; echo "Installing libssl-dev..."; sudo apt install -qy libssl-dev; }

@@ -1,4 +1,3 @@
-brew "bat"
 brew "bun"
 brew "eza"
 brew "go"
