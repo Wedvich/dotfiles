@@ -10,6 +10,9 @@ export NODE_COMPILE_CACHE="$HOME/.cache/nodejs-compile-cache"
 export MISE_NODE_COREPACK=true
 export COLORTERM=truecolor
 
+# WSL only: point browser-opening tools at the wslview shim setup.sh links.
+[ -r /proc/sys/fs/binfmt_misc/WSLInterop ] && export BROWSER=wslview
+
 (( $(ulimit -n) < 65536 )) && ulimit -n 65536
 
 # Prepend ~/.local/bin and the mise shims (shims cover non-interactive shells &

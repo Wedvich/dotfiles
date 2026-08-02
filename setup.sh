@@ -55,6 +55,13 @@ link_dotfiles() {
   # Ghostty reads $XDG_CONFIG_HOME/ghostty/config on both macOS and Linux
   mkdir -p "$HOME/.config/ghostty"
   link_file "$DOTFILES_PATH/ghostty.config" "$HOME/.config/ghostty/config"
+
+  # WSL ships no xdg-open, so tools that shell out to a browser (gh auth login)
+  # find nothing. Provide the name they probe for.
+  if [ -r /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+    mkdir -p "$HOME/.local/bin"
+    link_file "$DOTFILES_PATH/wslview.sh" "$HOME/.local/bin/wslview"
+  fi
 }
 
 configure_claude() {
