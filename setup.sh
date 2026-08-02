@@ -169,6 +169,29 @@ install_gh() {
   sudo apt update -qy && sudo apt install -qy gh
 }
 
+install_eza() {
+  if [[ "$IS_LINUX" != true ]]; then
+    return
+  fi
+
+  if command -v eza >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "Installing eza..."
+
+  sudo mkdir -p -m 755 /etc/apt/keyrings
+  curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | \
+  sudo gpg --yes --dearmor --output /etc/apt/keyrings/gierens.gpg
+
+  echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | \
+  sudo tee /etc/apt/sources.list.d/gierens.list > /dev/null
+
+  sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
+
+  sudo apt update -qy && sudo apt install -qy eza
+}
+
 install_zsh_plugins() {
   local zsh="$HOME/.zsh"
   mkdir -p "$zsh"
@@ -392,14 +415,6 @@ install_cargo() {
   if ! command -v cargo-generate >/dev/null 2>&1; then
     cargo install cargo-generate
   fi
-
-  if [[ "$IS_LINUX" != true ]]; then
-    return
-  fi
-
-  if ! command -v eza >/dev/null 2>&1; then
-    cargo install eza
-  fi
 }
 
 install_1password_cli() {
@@ -495,6 +510,7 @@ main() {
   install_homebrew
   install_apt_packages
   install_gh
+  install_eza
   install_zsh_plugins
   install_starship
   install_rust
