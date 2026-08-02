@@ -149,6 +149,7 @@ install_apt_packages() {
   apt_ensure hyperfine
   apt_ensure jq
   apt_ensure gpg gnupg
+  apt_ensure git-lfs
 
   pkg-config --exists openssl || { apt_update_once; echo "Installing libssl-dev..."; sudo apt install -qy libssl-dev; }
 }
@@ -264,6 +265,11 @@ configure_git() {
     git config --system --unset-all credential.helper 2>/dev/null || true
     git config --global --unset-all credential.helper 2>/dev/null || true
     git config --global credential.helper manager
+  fi
+
+  if [ -z "$(git config --global filter.lfs.clean)" ]; then
+    show_once configure_git "Validating Git config..."
+    git lfs install --skip-repo
   fi
 
   local keys=(user.name user.email)
