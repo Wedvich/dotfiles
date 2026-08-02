@@ -477,7 +477,10 @@ install_lang_tools() {
 
   mise use -g go@latest
   mise use -g bun@latest
+  mise use -g node@latest
   mise use -g "go:golang.org/x/tools/gopls@latest"
+
+  mise settings add idiomatic_version_file_enable_tools node
 }
 
 install_rtk() {
