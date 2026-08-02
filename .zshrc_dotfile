@@ -3,8 +3,11 @@ for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
   [ -x "$_brew" ] && eval "$("$_brew" shellenv)" && break
 done
 
-# Homebrew installs GNU make as gmake; prepend gnubin so `make` beats Apple's 3.81
-[ -d "$HOMEBREW_PREFIX/opt/make/libexec/gnubin" ] && path=("$HOMEBREW_PREFIX/opt/make/libexec/gnubin" $path)
+# Homebrew installs GNU make as gmake; prepend gnubin so `make` beats Apple's 3.81.
+# Strip first so re-sourcing (tmux/exec) doesn't stack duplicates.
+if [ -d "$HOMEBREW_PREFIX/opt/make/libexec/gnubin" ]; then
+  path=("$HOMEBREW_PREFIX/opt/make/libexec/gnubin" ${path:#$HOMEBREW_PREFIX/opt/make/libexec/gnubin})
+fi
 
 # Create or attach to tmux session if not already in one
 if [ -z "$TMUX" ]; then
@@ -65,6 +68,18 @@ source ~/.zsh/zsh-z/zsh-z.plugin.zsh
 # Mise — drop inherited session state (via tmux/exec) first
 unset -m '__MISE_*' 2>/dev/null
 eval "$(mise activate zsh)"
+
+# Re-assert mise ahead of Homebrew. `brew shellenv` above and path_helper both hoist
+# /opt/homebrew/bin to the front, and mise's hook only prepends dirs *missing* from
+# PATH — it won't reorder ones inherited through tmux/exec. Without this, a formula
+# that pulls in its own node/python (e.g. mongodb-atlas-cli → mongosh → node) shadows
+# the mise-managed version and per-project pins stop taking effect.
+_mise_dirs=(${(f)"$(mise bin-paths 2>/dev/null)"} "$HOME/.local/share/mise/shims")
+for _dir in $_mise_dirs; do
+  path=(${path:#$_dir})
+done
+path=($_mise_dirs $path)
+unset _dir _mise_dirs
 
 # Init Starship prompt
 eval "$(starship init zsh)"

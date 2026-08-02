@@ -12,12 +12,17 @@ export COLORTERM=truecolor
 
 (( $(ulimit -n) < 65536 )) && ulimit -n 65536
 
-# Prepend ~/.local/bin. Guard instead of `typeset -U` because setup.sh sources
-# this file inside a function, where `typeset` would shadow path with an empty local.
-(( ${path[(I)$HOME/.local/bin]} )) || path=("$HOME/.local/bin" $path)
-
-# mise shims — covers non-interactive shells & tools that don't run `mise activate`.
-(( ${path[(I)$HOME/.local/share/mise/shims]} )) || path=("$HOME/.local/share/mise/shims" $path)
+# Prepend ~/.local/bin and the mise shims (shims cover non-interactive shells &
+# tools that don't run `mise activate`). Hoist rather than skip-if-present: an
+# inherited PATH already containing these gets them re-hoisted, since path_helper
+# (/etc/paths.d/homebrew) puts /opt/homebrew/bin in front on every login shell.
+# Stripping first keeps this idempotent under the re-sourcing nested shells do,
+# which is why `typeset -U` isn't needed — setup.sh sources this inside a function,
+# where `typeset` would shadow path with an empty local.
+for _dir in "$HOME/.local/bin" "$HOME/.local/share/mise/shims"; do
+  path=("$_dir" ${path:#$_dir})
+done
+unset _dir
 
 skip_global_compinit=1
 fpath+="$HOME/.zfunc"
