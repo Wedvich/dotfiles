@@ -27,7 +27,7 @@ read_fields() {
 			elif . >= 1000 then ((. / 1000 | round | tostring) + "k")
 			else (. | tostring) end;
 		def pct:
-			if . == null then "" else (. | round | tostring) end;
+			if . == null then "" else ([(. | round), 100] | min | tostring) end;
 		[
 			(.model.display_name // "" | tostring | sub(" *\\([^)]*[Cc]ontext\\)$"; "")),
 			(.effort.level // "" | tostring),
@@ -63,10 +63,17 @@ else
 	[[ -n $ctx_pct ]] && line+=" (${ctx_pct}%)"
 fi
 
-line+=" · ${ICON_LIM} "
 h5d="–"; [[ -n $h5 ]] && h5d="${h5}%"
 d7d="–"; [[ -n $d7 ]] && d7d="${d7}%"
-line+="${h5d} (5h) ${d7d} (7d)"
+limits="${ICON_LIM} ${h5d} (5h) ${d7d} (7d)"
+
+line+=" · "
+# A maxed-out window is the one thing worth interrupting the gray for.
+if [[ $h5 == 100 || $d7 == 100 ]]; then
+	line+="${RST}${YEL}${limits}${RST}${GRAY}"
+else
+	line+="${limits}"
+fi
 
 line+="${RST}"
 printf '%s' "$line"
