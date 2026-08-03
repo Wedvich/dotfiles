@@ -63,17 +63,17 @@ else
 	[[ -n $ctx_pct ]] && line+=" (${ctx_pct}%)"
 fi
 
-h5d="–"; [[ -n $h5 ]] && h5d="${h5}%"
-d7d="–"; [[ -n $d7 ]] && d7d="${d7}%"
-limits="${ICON_LIM} ${h5d} (5h) ${d7d} (7d)"
-
-line+=" · "
+line+=" · ${ICON_LIM} "
 # A maxed-out window is the one thing worth interrupting the gray for.
-if [[ $h5 == 100 || $d7 == 100 ]]; then
-	line+="${RST}${YEL}${limits}${RST}${GRAY}"
-else
-	line+="${limits}"
-fi
+fmt_pct() {
+	[[ -z $1 ]] && { printf '–'; return; }
+	if [[ $1 == 100 ]]; then
+		printf '%s' "${RST}${YEL}${1}%${RST}${GRAY}"
+	else
+		printf '%s%%' "$1"
+	fi
+}
+line+="$(fmt_pct "$h5") (5h) $(fmt_pct "$d7") (7d)"
 
 line+="${RST}"
 printf '%s' "$line"
