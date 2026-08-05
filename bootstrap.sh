@@ -4,17 +4,31 @@
 
 set -e
 
+apt_updated=false
+apt_update_once() {
+  [ "$apt_updated" = true ] && return 0
+  sudo apt update -qy
+  apt_updated=true
+}
+
+# $1 command to probe, $2 package providing it (defaults to $1)
+apt_ensure() {
+  command -v "$1" >/dev/null 2>&1 && return 0
+  if ! command -v apt >/dev/null 2>&1; then
+    echo "$1 is missing and no supported package manager was found" >&2
+    return 1
+  fi
+  apt_update_once
+  echo "Installing $1..."
+  sudo apt install -qy "${2:-$1}"
+}
+
 # Root logins without sudo (Proxmox VE, LXC). A shell function only covers our
 # own call sites, not the installers setup.sh pipes to sh (starship), which
 # invoke sudo themselves — so get the real package when apt is around.
 if [ "$(id -u)" -eq 0 ] && ! command -v sudo >/dev/null 2>&1; then
-  if command -v apt >/dev/null 2>&1; then
-    apt update -qy && apt install -qy sudo \
-      || echo "Could not install sudo; falling back to a shell shim" >&2
-  fi
-  if ! command -v sudo >/dev/null 2>&1; then
-    sudo() { "$@"; }
-  fi
+  sudo() { "$@"; }
+  apt_ensure sudo || echo "Could not install sudo; keeping the shell shim" >&2
 fi
 
 if [ "$(uname -s)" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
@@ -61,6 +75,8 @@ fi
 dotfiles=$(dirname "$0")
 if [ ! -f "$dotfiles/setup.sh" ]; then
   dotfiles="$HOME/dotfiles"
+  # Fresh Proxmox VE hosts ship without git, so the clone below can't run yet.
+  apt_ensure git || exit 1
   if [ ! -d "$dotfiles" ]; then
     git clone https://github.com/Wedvich/dotfiles.git "$dotfiles"
   elif [ -d "$dotfiles/.git" ]; then
@@ -70,16 +86,7 @@ if [ ! -f "$dotfiles/setup.sh" ]; then
 fi
 cd "$dotfiles"
 
-if ! command -v zsh >/dev/null 2>&1; then
-  if command -v apt >/dev/null 2>&1; then
-    echo "Installing zsh..."
-    sudo apt update -qy
-    sudo apt install -qy zsh
-  else
-    echo "zsh is missing and no supported package manager was found" >&2
-    exit 1
-  fi
-fi
+apt_ensure zsh || exit 1
 
 zsh_path=$(command -v zsh)
 

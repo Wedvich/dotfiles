@@ -24,8 +24,9 @@ minimal. Pass `--full` to clear it.
 ### Testing
 
 ```bash
-docker run --rm -it -v ~/dotfiles:/work:ro -w /work ubuntu:24.04 \
- bash -c "apt update -qy && apt install -qy sudo git curl ca-certificates && git config --global --add safe.directory /work && bash bootstrap.sh";
+docker run --rm -it -v ~/dotfiles:/work:ro -w /work \
+ -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/work \
+ ubuntu:24.04 bash bootstrap.sh;
 ```
 
-Runs the local checkout against a fresh Ubuntu container. The read-only mount catches any accidental writes to the repo itself; `safe.directory` is needed because the mounted repo is owned by the host UID, not the container's root.
+Runs the local checkout against a fresh Ubuntu container — nothing is pre-installed, so this also exercises the bootstrap's own `sudo`/`git`/`zsh` provisioning. The read-only mount catches any accidental writes to the repo itself; `safe.directory` is needed because the mounted repo is owned by the host UID, not the container's root, and goes through the environment because git isn't installed yet at that point.
