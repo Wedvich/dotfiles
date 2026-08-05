@@ -4,6 +4,19 @@
 
 set -e
 
+# Root logins without sudo (Proxmox VE, LXC). A shell function only covers our
+# own call sites, not the installers setup.sh pipes to sh (starship), which
+# invoke sudo themselves — so get the real package when apt is around.
+if [ "$(id -u)" -eq 0 ] && ! command -v sudo >/dev/null 2>&1; then
+  if command -v apt >/dev/null 2>&1; then
+    apt update -qy && apt install -qy sudo \
+      || echo "Could not install sudo; falling back to a shell shim" >&2
+  fi
+  if ! command -v sudo >/dev/null 2>&1; then
+    sudo() { "$@"; }
+  fi
+fi
+
 if [ "$(uname -s)" = "Darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
   echo "Installing Xcode Command Line Tools (headless)..."
 
@@ -76,4 +89,4 @@ if [ "$(basename "${SHELL:-}")" != "zsh" ]; then
   sudo chsh -s "$zsh_path" "${USER:-$(id -un)}"
 fi
 
-exec zsh ./setup.sh
+exec zsh ./setup.sh "$@"

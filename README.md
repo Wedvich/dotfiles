@@ -10,6 +10,17 @@ curl -fsSL https://raw.githubusercontent.com/Wedvich/dotfiles/main/bootstrap.sh 
 
 This clones the repo to `~/dotfiles` if it isn't already there.
 
+Appliance-ish hosts (Proxmox VE, LXCs) can pass `--minimal` for shell comfort
+without the dev tooling. The script arrives on stdin, so bash needs `-s --` to
+forward the flag:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Wedvich/dotfiles/main/bootstrap.sh | bash -s -- --minimal
+```
+
+`--minimal` is sticky: a marker file keeps later runs (including `updot`)
+minimal. Pass `--full` to clear it.
+
 ### Testing
 
 ```bash

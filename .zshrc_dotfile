@@ -9,8 +9,9 @@ if [ -d "$HOMEBREW_PREFIX/opt/make/libexec/gnubin" ]; then
   path=("$HOMEBREW_PREFIX/opt/make/libexec/gnubin" ${path:#$HOMEBREW_PREFIX/opt/make/libexec/gnubin})
 fi
 
-# Create or attach to tmux session if not already in one
-if [ -z "$TMUX" ]; then
+# Create or attach to tmux session if not already in one.
+# Skipped over ssh: remote hosts get a plain shell, tmux there is on-demand only.
+if [ -z "$TMUX" ] && [ -z "$SSH_CONNECTION" ] && command -v tmux >/dev/null 2>&1; then
   if tmux has-session -t main >/dev/null 2>&1; then
     local detached_session=$(tmux list-sessions -F '#{session_name}' -f '#{&&:#{==:#{session_group},main},#{==:#{session_attached},0}}' 2>/dev/null | head -n1)
     if [ -n "$detached_session" ]; then
@@ -24,14 +25,14 @@ if [ -z "$TMUX" ]; then
 fi
 
 # Set up SSH agent bridge with Windows host on WSL2
-if [[ $(uname -r) == *WSL2* ]]; then
+if [[ "$IS_WSL" == true ]]; then
   source ~/.agent-bridge.sh
   init-1pw() { start_1pw_relay }
 fi
 
 # Aliases
 alias esh="exec zsh"
-alias ls="eza --icons=auto"
+command -v eza >/dev/null 2>&1 && alias ls="eza --icons=auto"
 alias edot="code $HOME/dotfiles"
 
 # Functions
@@ -57,29 +58,31 @@ setopt hist_verify            # show command with history expansion to user befo
 setopt share_history          # share command history data
 
 # Plugins
-source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh
-source ~/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
-source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.plugin.zsh
-source ~/.zsh/zsh-z/zsh-z.plugin.zsh
+for _plugin in zsh-autosuggestions zsh-autocomplete zsh-syntax-highlighting zsh-z; do
+  [ -f ~/.zsh/$_plugin/$_plugin.plugin.zsh ] && source ~/.zsh/$_plugin/$_plugin.plugin.zsh
+done
+unset _plugin
 
 # Rust
 [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
 
-# Mise — drop inherited session state (via tmux/exec) first
-unset -m '__MISE_*' 2>/dev/null
-eval "$(mise activate zsh)"
+if command -v mise >/dev/null 2>&1; then
+  # Mise — drop inherited session state (via tmux/exec) first
+  unset -m '__MISE_*' 2>/dev/null
+  eval "$(mise activate zsh)"
 
-# Re-assert mise ahead of Homebrew. `brew shellenv` above and path_helper both hoist
-# /opt/homebrew/bin to the front, and mise's hook only prepends dirs *missing* from
-# PATH — it won't reorder ones inherited through tmux/exec. Without this, a formula
-# that pulls in its own node/python (e.g. mongodb-atlas-cli → mongosh → node) shadows
-# the mise-managed version and per-project pins stop taking effect.
-_mise_dirs=(${(f)"$(mise bin-paths 2>/dev/null)"} "$HOME/.local/share/mise/shims")
-for _dir in $_mise_dirs; do
-  path=(${path:#$_dir})
-done
-path=($_mise_dirs $path)
-unset _dir _mise_dirs
+  # Re-assert mise ahead of Homebrew. `brew shellenv` above and path_helper both hoist
+  # /opt/homebrew/bin to the front, and mise's hook only prepends dirs *missing* from
+  # PATH — it won't reorder ones inherited through tmux/exec. Without this, a formula
+  # that pulls in its own node/python (e.g. mongodb-atlas-cli → mongosh → node) shadows
+  # the mise-managed version and per-project pins stop taking effect.
+  _mise_dirs=(${(f)"$(mise bin-paths 2>/dev/null)"} "$HOME/.local/share/mise/shims")
+  for _dir in $_mise_dirs; do
+    path=(${path:#$_dir})
+  done
+  path=($_mise_dirs $path)
+  unset _dir _mise_dirs
+fi
 
 # Init Starship prompt
-eval "$(starship init zsh)"
+command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"

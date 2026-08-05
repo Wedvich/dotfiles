@@ -8,6 +8,26 @@ DOTFILES_PATH=$(dirname "$DOTFILES")
 [[ "$OSTYPE" == "darwin"* ]] && IS_MACOS=true || IS_MACOS=false
 [[ "$OSTYPE" == "linux-gnu"* ]] && IS_LINUX=true || IS_LINUX=false
 
+# --minimal: appliance-ish hosts (Proxmox VE, LXCs) — shell comfort only, no dev
+# tooling. Sticky via marker so re-runs without the flag (e.g. updot) stay
+# minimal; --full clears the marker.
+MINIMAL_MARKER="$HOME/.dotfiles_minimal"
+if [[ " $* " == *" --full "* ]]; then
+  rm -f "$MINIMAL_MARKER"
+  MINIMAL=false
+elif [[ " $* " == *" --minimal "* ]] || [[ -f "$MINIMAL_MARKER" ]]; then
+  MINIMAL=true
+else
+  MINIMAL=false
+fi
+
+# Root logins without sudo (Proxmox VE, LXC): shim it so our call sites work
+# unchanged. A function doesn't reach child processes, so bootstrap.sh installs
+# the real package for piped installers that elevate on their own (starship).
+if (( EUID == 0 )) && ! command -v sudo >/dev/null 2>&1; then
+  sudo() { "$@"; }
+fi
+
 typeset -A _shown
 show_once() {
   [[ -n "${_shown[$1]}" ]] && return
@@ -55,7 +75,7 @@ link_dotfiles() {
 
   # WSL ships no xdg-open, so tools that shell out to a browser (gh auth login)
   # find nothing. Provide the name they probe for.
-  if [ -r /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+  if [[ "$IS_WSL" == true ]]; then
     mkdir -p "$HOME/.local/bin"
     link_file "$DOTFILES_PATH/wslview.sh" "$HOME/.local/bin/wslview"
   fi
@@ -140,11 +160,19 @@ install_apt_packages() {
   fi
 
   apt_ensure curl
-  apt_ensure cc build-essential
+  apt_ensure git
   apt_ensure tmux
+  apt_ensure jq
+
+  # Minimal hosts sign commits too, and need an editor for `git commit` without -m.
+  apt_ensure ssh-keygen openssh-client
+  apt_ensure vi vim
+
+  [[ "$MINIMAL" == true ]] && return
+
+  apt_ensure cc build-essential
   apt_ensure pkg-config
   apt_ensure hyperfine
-  apt_ensure jq
   apt_ensure gpg gnupg
   apt_ensure git-lfs
 
@@ -264,7 +292,7 @@ configure_git() {
     git config --global credential.helper manager
   fi
 
-  if [ -z "$(git config --global filter.lfs.clean)" ]; then
+  if command -v git-lfs >/dev/null 2>&1 && [ -z "$(git config --global filter.lfs.clean)" ]; then
     show_once configure_git "Validating Git config..."
     git lfs install --skip-repo
   fi
@@ -301,7 +329,7 @@ configure_zsh() {
 
   if [ -f "$HOME/.zshrc.local" ]; then
     show_once configure_zsh "Migrating ~/.zshrc.local into ~/.zshrc..."
-    grep -v 'brew shellenv' "$HOME/.zshrc.local" | sed '/./,$!d' >> "$rc"
+    grep -v 'brew shellenv' "$HOME/.zshrc.local" | sed '/./,$!d' >> "$HOME/.zshrc"
     rm "$HOME/.zshrc.local"
   fi
 }
@@ -497,47 +525,61 @@ main() {
   echo "\\033[2mhome:    \\033[0m$HOME"
   echo "\\033[2msystem:  \\033[0m$OSTYPE $(uname -m) ($(uname -r))"
   echo "\\033[2mversion: \\033[0m$git_sha"
+  echo "\\033[2mmode:    \\033[0m$([[ "$MINIMAL" == true ]] && echo minimal || echo full)"
   echo "\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m\n"
 
   source "$DOTFILES_PATH/.zshenv_dotfile"
 
   link_dotfiles
 
-  configure_xcode
-  configure_maxfiles
+  if [[ "$MINIMAL" == true ]]; then
+    touch "$MINIMAL_MARKER"
 
-  install_homebrew
-  install_apt_packages
-  install_gh
-  install_eza
-  install_zsh_plugins
-  install_starship
-  install_rust
-  install_cargo
-  install_1password_cli
-  install_mise
-  install_lang_tools
-  install_claude
+    install_apt_packages
+    install_zsh_plugins
+    install_starship
 
-  configure_git
-  configure_zsh
-  configure_signing
-  check_allowed_signers
-  configure_credentials
-  configure_claude
+    configure_git
+    configure_zsh
+    configure_signing
+    check_allowed_signers
+  else
+    configure_xcode
+    configure_maxfiles
+
+    install_homebrew
+    install_apt_packages
+    install_gh
+    install_eza
+    install_zsh_plugins
+    install_starship
+    install_rust
+    install_cargo
+    install_1password_cli
+    install_mise
+    install_lang_tools
+    install_claude
+
+    configure_git
+    configure_zsh
+    configure_signing
+    check_allowed_signers
+    configure_credentials
+    configure_claude
+  fi
 
   echo "\nManual steps:"
 
   if [[ "$IS_MACOS" == true ]]; then
     echo "• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
-  else
+  elif [[ "$MINIMAL" != true ]]; then
     echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
   fi
 
   if [[ "$_signing_key_changed" == true ]]; then
     echo "• Add this machine's signing key on GitHub as key type \\033[2mSigning Key\\033[0m\n  \\033[2mhttps://github.com/settings/ssh/new\\033[0m"
   fi
-  if ! gh auth status >/dev/null 2>&1; then
+  if command -v gh >/dev/null 2>&1 && ! gh auth status >/dev/null 2>&1; then
     echo "• Create this machine's fine-grained PAT and run \\033[2mgh auth login\\033[0m with it\n  \\033[2mhttps://github.com/settings/personal-access-tokens/new\\033[0m"
   fi
 
