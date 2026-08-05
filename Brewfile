@@ -12,7 +12,6 @@ brew "make"
 brew "mise"
 brew "opentofu"
 brew "pkg-config"
-brew "rtk"
 brew "starship"
 brew "tmux"
 
