@@ -450,6 +450,33 @@ configure_maxfiles() {
   sudo launchctl bootstrap system "$dst"
 }
 
+configure_proxmox() {
+  if ! command -v pveversion >/dev/null 2>&1; then
+    return
+  fi
+
+  local src="$DOTFILES_PATH/proxmox-no-nag.sh"
+  local dst="/usr/local/sbin/proxmox-no-nag"
+
+  # The apt hook runs as root long after setup, so copy rather than link — a
+  # symlink into the dotfiles clone breaks the moment the repo moves.
+  if ! cmp -s "$src" "$dst" 2>/dev/null; then
+    echo "Installing Proxmox subscription-nag patch..."
+    sudo install -m 755 "$src" "$dst"
+  fi
+
+  local hook="/etc/apt/apt.conf.d/99-proxmox-no-nag"
+  local hook_line='DPkg::Post-Invoke { "[ -x '"$dst"' ] && '"$dst"' || true"; };'
+
+  if ! grep -qxF "$hook_line" "$hook" 2>/dev/null; then
+    echo "Installing apt hook to reapply it after upgrades..."
+    printf '%s\n%s\n' '// proxmoxlib.js is not a conffile, so upgrades silently restore the notice.' "$hook_line" | \
+    sudo tee "$hook" > /dev/null
+  fi
+
+  sudo "$dst"
+}
+
 install_cargo() {
   if ! command -v cargo-generate >/dev/null 2>&1; then
     cargo install cargo-generate
@@ -533,6 +560,9 @@ main() {
   source "$DOTFILES_PATH/.zshenv_dotfile"
 
   link_dotfiles
+
+  # Outside the branch below: a Proxmox host may be set up either way.
+  configure_proxmox
 
   if [[ "$MINIMAL" == true ]]; then
     touch "$MINIMAL_MARKER"

@@ -22,6 +22,13 @@ curl -fsSL https://raw.githubusercontent.com/Wedvich/dotfiles/main/bootstrap.sh 
 minimal. Pass `--full` to clear it. Minimal hosts skip Starship and fall back to
 a plain zsh prompt with the same `❯`.
 
+On Proxmox VE hosts, setup also strips the "No valid subscription" popup from
+the web UI and installs an apt hook that reapplies the patch after upgrades
+restore the packaged file. `sudo proxmox-no-nag` runs it on demand,
+`sudo proxmox-no-nag --revert` puts the notice back; both are no-ops when
+nothing needs changing. A hard reload (Ctrl-Shift-R) is needed to see the
+change, since the UI's cache-buster is tied to the package version.
+
 ### Testing
 
 ```bash
