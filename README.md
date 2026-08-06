@@ -20,7 +20,9 @@ curl -fsSL https://raw.githubusercontent.com/Wedvich/dotfiles/main/bootstrap.sh 
 
 `--minimal` is sticky: a marker file keeps later runs (including `updot`)
 minimal. Pass `--full` to clear it. Minimal hosts skip Starship and fall back to
-a plain zsh prompt with the same `❯`.
+a plain zsh prompt with the same `❯`. They do get `zoxide` and `eza`, since moving
+around a filesystem is the same comfort everywhere — both from the distro's own
+repos, so an appliance host doesn't grow a third-party apt source.
 
 On Proxmox VE hosts, setup also strips the "No valid subscription" popup from
 the web UI and installs an apt hook that reapplies the patch after upgrades

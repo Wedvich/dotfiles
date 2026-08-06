@@ -9,14 +9,54 @@
 [push]
   autoSetupRemote = true
 
-[gpg]
-  format = ssh
+[pull]
+  ff = only
+
+[fetch]
+  all = true
+  prune = true
+  pruneTags = true
+
+[merge]
+  # zdiff3 keeps the common ancestor in conflict markers, which is what makes a
+  # three-way conflict readable.
+  conflictStyle = zdiff3
+
+[rebase]
+  autosquash = true
+  autostash = true
+  # Rebasing the bottom of a stack retargets the branches pointing into it.
+  updateRefs = true
+
+[diff]
+  algorithm = histogram
+  colorMoved = default
+  mnemonicPrefix = true
+  renames = true
 
 [commit]
   gpgsign = true
+  verbose = true
+
+[branch]
+  sort = -committerdate
+
+[tag]
+  sort = -version:refname
+
+[column]
+  ui = auto
+
+[help]
+  autocorrect = prompt
+
+[gpg]
+  format = ssh
 
 [alias]
-  home = !git checkout $(git symbolic-ref refs/remotes/origin/HEAD --short | sed 's|origin/||') && git pull
+  # set-head first: origin/HEAD is unset on plenty of clones, and without it the
+  # symbolic-ref below fails with nothing useful to say.
+  home = !git remote set-head origin --auto >/dev/null 2>&1; git checkout $(git symbolic-ref refs/remotes/origin/HEAD --short | sed 's|origin/||') && git pull
   gone = "!git remote update --prune && git branch -vv | awk '/: gone]/ {print $1}' | xargs -r git branch -d"
 
 [rerere]

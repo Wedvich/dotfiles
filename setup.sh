@@ -56,30 +56,47 @@ link_file() {
 }
 
 link_dotfiles() {
-  local files=($(find "$DOTFILES_PATH" -maxdepth 1 -name '.*' -type f -not -name '.DS_Store'))
+  # An explicit map, deliberately not a glob over the repo's dot-files: a glob
+  # links anything added later (a .gitignore, say) straight into $HOME.
+  local -a links=(
+    .agent-bridge.sh       "$HOME/.agent-bridge.sh"
+    .allowed_signers       "$HOME/.allowed_signers"
+    .editorconfig          "$HOME/.editorconfig"
+    .gitconfig_dotfile     "$HOME/.gitconfig_dotfile"
+    .tmux-status-right.sh  "$HOME/.tmux-status-right.sh"
+    .tmux.conf             "$HOME/.tmux.conf"
+    .tmux.snazzy.theme     "$HOME/.tmux.snazzy.theme"
+    .zshenv_dotfile        "$HOME/.zshenv_dotfile"
+    .zshrc_dotfile         "$HOME/.zshrc_dotfile"
+
+    # CLAUDE.md and the status line script go into ~/.claude/, not ~/
+    CLAUDE.md              "$HOME/.claude/CLAUDE.md"
+    statusline-command.sh  "$HOME/.claude/statusline-command.sh"
+
+    # Ghostty reads $XDG_CONFIG_HOME/ghostty/config on both macOS and Linux
+    ghostty.config         "$HOME/.config/ghostty/config"
+  )
+
   if [[ "$MINIMAL" != true ]]; then
-    files+="$DOTFILES_PATH/starship.toml"
+    links+=(starship.toml "$HOME/.config/starship.toml")
   fi
-
-  for i in "${files[@]}"; do
-    local file=$(basename "$i")
-    link_file "$DOTFILES_PATH/$file" "$HOME/$file"
-  done
-
-  # CLAUDE.md and the status line script go into ~/.claude/, not ~/
-  mkdir -p "$HOME/.claude"
-  link_file "$DOTFILES_PATH/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
-  link_file "$DOTFILES_PATH/statusline-command.sh" "$HOME/.claude/statusline-command.sh"
-
-  # Ghostty reads $XDG_CONFIG_HOME/ghostty/config on both macOS and Linux
-  mkdir -p "$HOME/.config/ghostty"
-  link_file "$DOTFILES_PATH/ghostty.config" "$HOME/.config/ghostty/config"
 
   # WSL ships no xdg-open, so tools that shell out to a browser (gh auth login)
   # find nothing. Provide the name they probe for.
   if [[ "$IS_WSL" == true ]]; then
-    mkdir -p "$HOME/.local/bin"
-    link_file "$DOTFILES_PATH/wslview.sh" "$HOME/.local/bin/wslview"
+    links+=(wslview.sh "$HOME/.local/bin/wslview")
+  fi
+
+  local src dst
+  for src dst in "${links[@]}"; do
+    mkdir -p "${dst:h}"
+    link_file "$DOTFILES_PATH/$src" "$dst"
+  done
+
+  # starship.toml used to land undotted in $HOME, found via $STARSHIP_CONFIG.
+  # An if, not &&: a false tail would make the function return 1 under set -e.
+  if [ -L "$HOME/starship.toml" ]; then
+    rm "$HOME/starship.toml"
   fi
 }
 
@@ -170,7 +187,17 @@ install_apt_packages() {
   apt_ensure ssh-keygen openssh-client
   apt_ensure vi vim
 
-  [[ "$MINIMAL" == true ]] && return
+  # Directory jumping is shell comfort, which is what minimal hosts are for.
+  # Non-fatal: older suites don't carry it, and .zshrc_dotfile guards on presence.
+  apt_ensure zoxide || true
+
+  if [[ "$MINIMAL" == true ]]; then
+    # Same reasoning for eza, but from the distro rather than install_eza's upstream
+    # repo: an appliance host shouldn't grow a third-party apt source it then
+    # depends on at every `apt upgrade`.
+    apt_ensure eza || true
+    return
+  fi
 
   apt_ensure cc build-essential
   apt_ensure pkg-config
@@ -233,7 +260,6 @@ install_zsh_plugins() {
   local plugins=(
     zsh-autosuggestions=zsh-users/zsh-autosuggestions
     zsh-syntax-highlighting=zsh-users/zsh-syntax-highlighting
-    zsh-z=agkozak/zsh-z
     zsh-autocomplete=marlonrichert/zsh-autocomplete
   )
 
@@ -243,8 +269,19 @@ install_zsh_plugins() {
     if [ ! -d "$zsh/$dir" ]; then
       show_once zsh_plugins "Installing ZSH plugins..."
       git clone --depth 1 "https://github.com/$repo.git" "$zsh/$dir"
+    else
+      # Cloning once and never pulling freezes each machine at whatever upstream
+      # looked like on its first setup. fetch+reset rather than pull: the clones are
+      # shallow, and zsh-autocomplete rewrites files inside its own checkout at
+      # runtime, which makes --ff-only refuse. Nothing here is ours to keep.
+      { git -C "$zsh/$dir" fetch --quiet --depth 1 origin &&
+        git -C "$zsh/$dir" reset --hard --quiet FETCH_HEAD; } 2>/dev/null ||
+        echo "Could not update $dir" >&2
     fi
   done
+
+  # zsh-z was replaced by zoxide.
+  rm -rf "$zsh/zsh-z"
 }
 
 install_starship() {
@@ -255,6 +292,20 @@ install_starship() {
   if ! command -v starship >/dev/null 2>&1; then
     echo "Installing Starship..."
     curl -sS https://starship.rs/install.sh | sh -s -- -y
+  fi
+}
+
+configure_zoxide() {
+  command -v zoxide >/dev/null 2>&1 || return 0
+
+  # One-time import of zsh-z's frecency database. Gated on the zoxide db being
+  # empty rather than on a db path: zoxide puts it under ~/.local/share on Linux
+  # but ~/Library/Application Support on macOS, and it refuses a non-empty db
+  # anyway. zoxide locates zsh-z's own datafile itself, so only the default path
+  # is checked here.
+  if [ -f "$HOME/.z" ] && [ -z "$(zoxide query -l 2>/dev/null | head -1)" ]; then
+    show_once zoxide "Importing zsh-z history into zoxide..."
+    zoxide import zsh-z || echo "Could not import $HOME/.z into zoxide" >&2
   fi
 }
 
@@ -292,6 +343,10 @@ configure_git() {
     git config --system --unset-all credential.helper 2>/dev/null || true
     git config --global --unset-all credential.helper 2>/dev/null || true
     git config --global credential.helper manager
+
+    # The built-in FSMonitor daemon is macOS/Windows only, so this can't live in
+    # the shared .gitconfig_dotfile that Linux hosts include too.
+    git config --global core.fsmonitor true
   fi
 
   if command -v git-lfs >/dev/null 2>&1 && [ -z "$(git config --global filter.lfs.clean)" ]; then
@@ -569,6 +624,7 @@ main() {
 
     install_apt_packages
     install_zsh_plugins
+    configure_zoxide
 
     configure_git
     configure_zsh
@@ -590,6 +646,7 @@ main() {
     install_mise
     install_lang_tools
     install_claude
+    configure_zoxide
 
     configure_git
     configure_zsh

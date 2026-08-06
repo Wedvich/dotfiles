@@ -11,7 +11,6 @@ fi
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=$zsh_history_size
 export SAVEHIST=$zsh_history_size
-export STARSHIP_CONFIG="$HOME/starship.toml"
 export NODE_COMPILE_CACHE="$HOME/.cache/nodejs-compile-cache"
 export MISE_NODE_COREPACK=true
 export COLORTERM=truecolor

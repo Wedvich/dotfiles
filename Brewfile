@@ -14,6 +14,7 @@ brew "opentofu"
 brew "pkg-config"
 brew "starship"
 brew "tmux"
+brew "zoxide"
 
 cask "1password-cli"
 cask "1password"
