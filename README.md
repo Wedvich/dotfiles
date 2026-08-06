@@ -19,7 +19,8 @@ curl -fsSL https://raw.githubusercontent.com/Wedvich/dotfiles/main/bootstrap.sh 
 ```
 
 `--minimal` is sticky: a marker file keeps later runs (including `updot`)
-minimal. Pass `--full` to clear it.
+minimal. Pass `--full` to clear it. Minimal hosts skip Starship and fall back to
+a plain zsh prompt with the same `❯`.
 
 ### Testing
 

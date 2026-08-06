@@ -57,7 +57,9 @@ link_file() {
 
 link_dotfiles() {
   local files=($(find "$DOTFILES_PATH" -maxdepth 1 -name '.*' -type f -not -name '.DS_Store'))
-  files+="$DOTFILES_PATH/starship.toml"
+  if [[ "$MINIMAL" != true ]]; then
+    files+="$DOTFILES_PATH/starship.toml"
+  fi
 
   for i in "${files[@]}"; do
     local file=$(basename "$i")
@@ -537,7 +539,6 @@ main() {
 
     install_apt_packages
     install_zsh_plugins
-    install_starship
 
     configure_git
     configure_zsh

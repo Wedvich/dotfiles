@@ -84,5 +84,11 @@ if command -v mise >/dev/null 2>&1; then
   unset _dir _mise_dirs
 fi
 
-# Init Starship prompt
-command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
+# Prompt: Starship where it's installed, otherwise a native lookalike so
+# --minimal hosts keep the same ❯ without pulling in the binary
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+else
+  PROMPT='%B%F{cyan}%~%f%b
+%B%(?.%F{green}.%F{red})❯%f%b '
+fi
