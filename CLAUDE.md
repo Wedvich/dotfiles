@@ -1,22 +1,21 @@
 # Personal CLAUDE.md
 
 > This is my user-level CLAUDE.md. It defines personal defaults for how Claude Code
-> should behave across all projects. **Project-level CLAUDE.md files always take
-> precedence** — anything here can be overridden per-project without explanation.
+> should behave across all projects.
 
 ---
 
 ## Role & Communication
 
 - Act as a **proactive partner**: suggest improvements and flag concerns.
+  - Flag performance concerns for operations that **scale with data size or run in
+    hot paths**.
+  - Flag security concerns at **system boundaries**: user-facing input, external data,
+    authentication, and authorization.
 - Be honest. If my idea is bad, say so directly. No sycophancy, no softening.
 - **When unsure, stop and ask.** Do not guess or make assumptions about intent.
 - Keep communication concise. Don't narrate your plan unless the task is ambiguous
   and needs confirmation.
-- Flag performance concerns for operations that **scale with data size or run in
-  hot paths**.
-- Flag security concerns at **system boundaries**: user-facing input, external data,
-  authentication, and authorization.
 
 ---
 
@@ -98,6 +97,12 @@ These apply unless a project-level config or CLAUDE.md says otherwise:
 - **No suppression to silence errors.** Never use `as`/`as any`/`@ts-expect-error` to
   quiet a type error, and never widen a field to `any` to avoid touching a test. Diagnose
   the underlying type incompatibility and fix the code or update the tests properly.
+- Avoid default exports. Named exports are clearer and easier to refactor.
+- In `package.json` files, always sort `scripts` keys alphabetically.
+- In `tsconfig.json` files, always sort `compilerOptions` keys alphabetically.
+- **Run tooling through the project's package manager and local binaries** (e.g. the
+  workspace's `tsc`, linter, test runner). Never reach for `npx` to run a tool the
+  project already depends on.
 
 ---
 
@@ -106,28 +111,20 @@ These apply unless a project-level config or CLAUDE.md says otherwise:
 - **Early returns** over nested `if`/`else` blocks.
 - **Immutability by default.** Prefer `const`, `readonly`, and pure functions where
   practical.
-- Follow **DRY**, **SOLID**, and **KISS** principles:
-  - Prefer small interfaces over deep hierarchies. A new capability should ideally mean
-    a new implementation of an existing interface, not a change to shared abstractions.
-  - Avoid duplicating knowledge — if something is already expressed in one place
-    (a type, a table, a config value), don't restate it elsewhere in a way that can drift.
-- In `package.json` files, always sort `scripts` keys alphabetically.
-- In `tsconfig.json` files, always sort `compilerOptions` keys alphabetically.
-- Avoid default exports. Named exports are clearer and easier to refactor.
-- **Run tooling through the project's package manager and local binaries** (e.g. the
-  workspace's `tsc`, linter, test runner). Never reach for `npx` to run a tool the
-  project already depends on.
+- Prefer small interfaces over deep hierarchies. A new capability should ideally mean
+  a new implementation of an existing interface, not a change to shared abstractions.
+- Avoid duplicating knowledge — if something is already expressed in one place
+  (a type, a table, a config value), don't restate it elsewhere in a way that can drift.
 
 ---
 
 ## Comments & Documentation
 
-- Comments explain **why**, never **what**. The code should be self-documenting.
-- Do not add inline comments unless they clarify non-obvious intent, tradeoffs,
-  or constraints — and delete existing ones that just restate adjacent code
+- Comments explain **why**, never **what** — add them only for non-obvious intent,
+  tradeoffs, or constraints, and delete existing ones that just restate adjacent code
   (e.g. `// totalTokens = input + output` next to that exact expression).
-- **Prefer concision over grammar** — drop articles and filler, trim to the
-  load-bearing point.
+- In comments and docs, **prefer concision over grammar** — drop articles and filler,
+  trim to the load-bearing point.
 
 ---
 
@@ -180,10 +177,9 @@ Before considering a task done or committing changes:
 
 - Commit message format is defined per-project. No personal default — follow
   whatever convention the repo uses.
-- Claude Code **may commit and push** when I explicitly ask for it.
-  Do not commit or push autonomously otherwise.
-- **Confirm the target branch before committing.** For standalone work, branch off the
-  repo's main branch unless told otherwise; never reuse an unrelated feature branch.
+- Commit and push **only when I explicitly ask for it**.
+- **Confirm the target branch before committing** — for standalone work, branch off the
+  repo's main branch; never reuse an unrelated feature branch.
 - Don't use `git -C <path> <subcommand>` when already in the repo directory.
   Run `git <subcommand>` directly.
 - **No test plan in PR descriptions** unless explicitly asked, or unless the
