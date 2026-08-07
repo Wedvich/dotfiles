@@ -22,36 +22,68 @@
 
 ## Code navigation and editing
 
-Prefer tilth MCP tools over built-in Read/Edit/Grep/Glob for source code. The
-tilth server injects its own routing rules, and each tool documents its own
-parameters and modes — so the notes below are only what neither of those tells
-you.
+Prefer tilth over the host's generic code-reading, search, file-discovery,
+editing, and diff tools for source code. The tilth server injects its own
+routing rules, and each tool documents its own parameters and modes — the
+notes below are only what neither of those tells you.
 
-Built-in Read/Edit are fine for non-code (markdown, JSON, configs).
-Built-in Grep (ripgrep) is fine for log files and plain text.
+Built-in tools are fine for non-code: markdown, JSON, configs, logs. In
+particular, `tilth_diff` is structural and shows nothing useful for
+markdown or config changes — use `git diff` there.
 
-`tilth_write` writes only inside the project root — paths outside it (e.g. a
-scratchpad) are refused, so use built-in Write there. When an edit is rejected
-because the file changed since the read, re-anchor from the echoed hashlines and
-retry; don't fall back to built-in Edit.
+### Paths and scope
 
-After a subagent edits a file, `mcp__tilth__tilth_read` can serve stale (pre-edit)
-content indefinitely — its per-process index isn't invalidated by external
-writes. Verify via `git diff` / `tilth_diff` before relying on a read.
+- `scope` means an existing **directory only**. Never pass a file path as
+  `scope`. To restrict a search to one file, use an exact `glob`, or
+  `tilth_read` when the file is already known.
+- `context` is the file currently being worked on. It boosts nearby results
+  but does not restrict the search.
+- For a repository-wide search in the current checkout, prefer `scope: "."`
+  with an absolute `root`, especially in worktrees. Omitting `scope` searches
+  the directory where the tilth server was launched.
+- Treat any "invalid scope" or fallback warning as a failed narrowing attempt.
+  Retry with a valid directory `scope` or an exact `glob`.
+
+### Search
+
+- `kind: "symbol"` for identifiers, definitions, usages, and callers.
+- `kind: "content"` for literal source text: error messages, config keys,
+  string constants.
+- `kind: "regex"` only when a real regular expression is needed.
+- `kind: "callers"` to find call sites of a symbol.
+- Comma-separated queries: up to five genuine symbol names, symbol searches
+  only. Don't combine terms needing different kinds in one query — e.g. a
+  class name (`symbol`) and an error string (`content`) are separate calls.
+- `glob` whitelists or excludes files. Examples: exact file
+  `src/app/config.ts`, file type `**/*.ts`, exclusion `!**/*.test.ts`.
+- `tilth_deps` only before signature changes, renamed or removed exports, or
+  behaviour changes callers rely on. `tilth_grok` when the task is
+  specifically to understand one symbol structurally.
+
+### Writes
+
+- `tilth_write` writes only inside the project root — paths outside it (e.g.
+  a scratchpad) are refused, so use built-in Write there.
+- When an edit is rejected because the file changed since the read, re-anchor
+  from the echoed hashlines and retry; don't fall back to built-in Edit.
+- After a subagent or external process edits a file, `tilth_read` can serve
+  stale (pre-edit) content indefinitely — its per-process index isn't
+  invalidated by external writes. Verify via `tilth_diff` / `git diff` before
+  relying on a read.
 
 ### LSP vs tilth
 
-When a language server (LSP) is available for the current file's language,
-the two tools are complementary — use each for what it's best at:
+When a language server is available for the current file's language, the two
+are complementary:
 
 - **tilth** — default for search, navigation, and broad/structural reads
   (fast, build-free, name-based).
-- **LSP** — escalate to it when correctness of _semantics_ is the question:
-  precise find-references on an ambiguous/overloaded symbol, go-to-definition
+- **LSP** — escalate when correctness of _semantics_ is the question: precise
+  find-references on an ambiguous or overloaded symbol, go-to-definition
   through re-exports, type/hover info, and pre-compile diagnostics.
 
-Default to tilth; reach for the LSP when name-based matching isn't trustworthy
-enough.
+Default to tilth; reach for the LSP when name-based matching isn't
+trustworthy enough.
 
 ---
 
