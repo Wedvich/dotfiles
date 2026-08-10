@@ -173,6 +173,35 @@ install_homebrew() {
   brew bundle --file "$DOTFILES_PATH/Brewfile" --quiet
 }
 
+# Debian netinst/LXC images ship without a generated UTF-8 locale, so anything
+# locale-aware (zsh completion, eza glyphs, git log) falls back to C. Ubuntu
+# normally has one already, and both steps below are then no-ops.
+configure_locale() {
+  if [[ "$IS_LINUX" != true ]]; then
+    return
+  fi
+
+  apt_ensure locale-gen locales
+
+  # locale -a prints glibc's spelling (en_US.utf8), not locale.gen's.
+  if ! locale -a 2>/dev/null | tr -d '-' | grep -qixF en_US.utf8; then
+    echo "Generating en_US.UTF-8 locale..."
+    sudo sed -i 's/^# *en_US\.UTF-8/en_US.UTF-8/' /etc/locale.gen
+    # Stripped images can drop the line entirely, leaving nothing to uncomment.
+    grep -q '^en_US\.UTF-8' /etc/locale.gen || \
+      echo 'en_US.UTF-8 UTF-8' | sudo tee -a /etc/locale.gen > /dev/null
+    sudo locale-gen
+  fi
+
+  if ! grep -qxF 'LANG=en_US.UTF-8' /etc/default/locale 2>/dev/null; then
+    echo "Setting default LANG to en_US.UTF-8..."
+    sudo update-locale LANG=en_US.UTF-8
+  fi
+
+  # /etc/default/locale is only read at login, so carry it into this run too.
+  export LANG=en_US.UTF-8
+}
+
 install_apt_packages() {
   if [[ "$IS_LINUX" != true ]]; then
     return
@@ -616,7 +645,9 @@ main() {
 
   link_dotfiles
 
-  # Outside the branch below: a Proxmox host may be set up either way.
+  # Outside the branch below: both apply either way — a UTF-8 locale is baseline
+  # shell comfort, and a Proxmox host may be set up in either mode.
+  configure_locale
   configure_proxmox
 
   if [[ "$MINIMAL" == true ]]; then
