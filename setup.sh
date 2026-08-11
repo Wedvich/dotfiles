@@ -214,7 +214,7 @@ install_apt_packages() {
 
   # Minimal hosts sign commits too, and need an editor for `git commit` without -m.
   apt_ensure ssh-keygen openssh-client
-  apt_ensure vi vim
+  apt_ensure nano
 
   # Directory jumping is shell comfort, which is what minimal hosts are for.
   # Non-fatal: older suites don't carry it, and .zshrc_dotfile guards on presence.

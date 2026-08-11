@@ -3,10 +3,9 @@ local zsh_history_size=10000
 # Minimal/server installs have no VS Code. GIT_EDITOR is needed as well: git
 # ignores $EDITOR when core.editor is set, and .gitconfig_dotfile sets it.
 if command -v code >/dev/null 2>&1; then
-  export EDITOR="code"
-  export VISUAL="code"
+  export EDITOR=code VISUAL=code
 else
-  export EDITOR=vi VISUAL=vi GIT_EDITOR=vi
+  export EDITOR=nano VISUAL=nano GIT_EDITOR=nano
 fi
 export HISTFILE="$HOME/.zsh_history"
 export HISTSIZE=$zsh_history_size
