@@ -6,6 +6,9 @@ command_timeout = 1500
 truncate_to_repo = false
 truncation_length = 0
 
+[container]
+disabled = true
+
 [gcloud]
 disabled = true
 
