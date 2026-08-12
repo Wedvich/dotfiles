@@ -383,6 +383,14 @@ configure_git() {
     git lfs install --skip-repo
   fi
 
+  if [[ "$MINIMAL" == true ]]; then
+    # Minimal hosts get no signing key, so the shared gpgsign=true would break
+    # every commit there. Identity checks are skipped too - no personal identity
+    # is expected on these hosts, so nothing is missing.
+    git config --global commit.gpgsign false
+    return
+  fi
+
   local keys=(user.name user.email)
 
   for i in "${keys[@]}"; do
@@ -659,8 +667,9 @@ main() {
 
     configure_git
     configure_zsh
-    configure_signing
-    check_allowed_signers
+    # No commit signing: minimal hosts have no Git identity to sign as, and a
+    # per-machine key there would only nag until it's committed to
+    # .allowed_signers.
   else
     configure_xcode
     configure_maxfiles
@@ -687,19 +696,26 @@ main() {
     configure_claude
   fi
 
-  echo "\nManual steps:"
+  local -a manual_steps
 
   if [[ "$IS_MACOS" == true ]]; then
-    echo "• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m"
+    manual_steps+=("• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m")
   elif [[ "$MINIMAL" != true ]]; then
-    echo "• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m"
+    manual_steps+=("• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m")
   fi
 
   if [[ "$_signing_key_changed" == true ]]; then
-    echo "• Add this machine's signing key on GitHub as key type \\033[2mSigning Key\\033[0m\n  \\033[2mhttps://github.com/settings/ssh/new\\033[0m"
+    manual_steps+=("• Add this machine's signing key on GitHub as key type \\033[2mSigning Key\\033[0m\n  \\033[2mhttps://github.com/settings/ssh/new\\033[0m")
   fi
   if command -v gh >/dev/null 2>&1 && ! gh auth status >/dev/null 2>&1; then
-    echo "• Create this machine's fine-grained PAT and run \\033[2mgh auth login\\033[0m with it\n  \\033[2mhttps://github.com/settings/personal-access-tokens/new\\033[0m"
+    manual_steps+=("• Create this machine's fine-grained PAT and run \\033[2mgh auth login\\033[0m with it\n  \\033[2mhttps://github.com/settings/personal-access-tokens/new\\033[0m")
+  fi
+
+  if (( ${#manual_steps} )); then
+    echo "\nManual steps:"
+    for step in "${manual_steps[@]}"; do
+      echo "$step"
+    done
   fi
 
   echo "\n\033[38;2;254;172;94m~\033[38;2;249;167;104m~\033[38;2;244;163;115m~\033[38;2;239;158;125m~\033[38;2;234;153;135m~\033[38;2;229;149;146m~\033[38;2;224;144;156m~\033[38;2;219;140;167m~\033[38;2;214;135;177m~\033[38;2;209;130;187m~\033[38;2;204;126;198m~\033[38;2;199;121;208m~\033[38;2;188;127;207m~\033[38;2;176;134;207m~\033[38;2;165;140;206m~\033[38;2;154;147;205m~\033[38;2;143;153;204m~\033[38;2;131;160;204m~\033[38;2;120;166;203m~\033[38;2;109;173;202m~\033[38;2;98;179;201m~\033[38;2;86;186;201m~\033[0m"
