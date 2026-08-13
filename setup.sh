@@ -60,9 +60,7 @@ link_dotfiles() {
   # links anything added later (a .gitignore, say) straight into $HOME.
   local -a links=(
     .agent-bridge.sh       "$HOME/.agent-bridge.sh"
-    .allowed_signers       "$HOME/.allowed_signers"
     .editorconfig          "$HOME/.editorconfig"
-    .gitconfig_dotfile     "$HOME/.gitconfig_dotfile"
     .tmux-status-right.sh  "$HOME/.tmux-status-right.sh"
     .tmux.conf             "$HOME/.tmux.conf"
     .tmux.snazzy.theme     "$HOME/.tmux.snazzy.theme"
@@ -78,7 +76,15 @@ link_dotfiles() {
   )
 
   if [[ "$MINIMAL" != true ]]; then
-    links+=(starship.toml "$HOME/.config/starship.toml")
+    links+=(
+      starship.toml          "$HOME/.config/starship.toml"
+
+      # Git config stays off minimal hosts entirely: no identity or signing is
+      # expected there, and older system git (Bullseye ships 2.30) rejects
+      # newer keys like gpg.format=ssh so hard that every git command dies.
+      .allowed_signers       "$HOME/.allowed_signers"
+      .gitconfig_dotfile     "$HOME/.gitconfig_dotfile"
+    )
   fi
 
   # WSL ships no xdg-open, so tools that shell out to a browser (gh auth login)
@@ -212,7 +218,8 @@ install_apt_packages() {
   apt_ensure tmux
   apt_ensure jq
 
-  # Minimal hosts sign commits too, and need an editor for `git commit` without -m.
+  # An editor for `git commit` without -m; ssh-keygen/openssh-client for
+  # remotes and (on full hosts) signing keys.
   apt_ensure ssh-keygen openssh-client
   apt_ensure nano
 
@@ -366,6 +373,22 @@ configure_git() {
     echo "🔔 \\033[33m$1\\033[0m"
   }
 
+  if [[ "$MINIMAL" == true ]]; then
+    # Minimal hosts don't use the shared gitconfig at all (see link_dotfiles).
+    # Undo what earlier runs wired up - while the include pointed at a file
+    # with gpg.format=ssh, older system git refused to run entirely.
+    git config --global --unset-all include.path '\.gitconfig_dotfile$' 2>/dev/null || true
+    git config --global --unset commit.gpgsign 2>/dev/null || true
+    local stale
+    for stale in "$HOME/.gitconfig_dotfile" "$HOME/.allowed_signers"; do
+      # An if, not &&: a false tail would make the function return 1 under set -e.
+      if [ -L "$stale" ]; then
+        rm "$stale"
+      fi
+    done
+    return
+  fi
+
   git config --global --get-all include.path | grep -q "$HOME/.gitconfig_dotfile" || git config --global --add include.path "$HOME/.gitconfig_dotfile"
 
   if [[ "$IS_MACOS" == true ]]; then
@@ -381,14 +404,6 @@ configure_git() {
   if command -v git-lfs >/dev/null 2>&1 && [ -z "$(git config --global filter.lfs.clean)" ]; then
     show_once configure_git "Validating Git config..."
     git lfs install --skip-repo
-  fi
-
-  if [[ "$MINIMAL" == true ]]; then
-    # Minimal hosts get no signing key, so the shared gpgsign=true would break
-    # every commit there. Identity checks are skipped too - no personal identity
-    # is expected on these hosts, so nothing is missing.
-    git config --global commit.gpgsign false
-    return
   fi
 
   local keys=(user.name user.email)
@@ -438,6 +453,9 @@ configure_signing() {
   # Extractable, accepted: signing-only scope + per-machine revocation keeps
   # the downside bounded - forged signatures until revoked, no repo access.
 
+  # Set here rather than in the shared gitconfig: signing is a full-host
+  # concern, and gpg.format=ssh breaks git older than 2.34 at config parse.
+  git config --global gpg.format ssh
   git config --global gpg.ssh.allowedSignersFile "$HOME/.allowed_signers"
 
   local key="$HOME/.ssh/git-signing"
