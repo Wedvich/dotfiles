@@ -5,7 +5,7 @@
 pane_pid="$1"
 pane_current_path="$2"
 
-# SSH indicator: matches direct ssh, gcloud compute ssh, and wrappers.
+# SSH detection: matches direct ssh, gcloud compute ssh, and wrappers.
 # gcloud compute ssh is a 3-level deep process tree (shell → gcloud → ssh),
 # so we collect all descendants up to 3 levels deep before checking.
 _children() { pgrep -P "$1" 2>/dev/null; }
@@ -20,17 +20,14 @@ done
 # shellcheck disable=SC2086
 _ssh_cmds="$(ps -o command= -p $_ssh_pids 2>/dev/null | tr '\n' ' ')"
 case "$_ssh_cmds" in
-  *ssh*) printf '#[fg=colour81]ssh ';;
+  *ssh*) _host_color=81;;   # cyan — this pane is SSH'd elsewhere
+  *)     _host_color=205;;  # pink — local
 esac
 
 # Path with ~ substituted for $HOME
 path="$(printf '%s' "$pane_current_path" | sed "s|$HOME|~|")"
 printf '#[fg=colour8]%s' "$path"
 
-# Git branch
-branch="$(cd "$pane_current_path" && git branch --show-current 2>/dev/null)"
-if [ -n "$branch" ]; then
-  printf '#[default] #[fg=colour205]%s' "$branch"
-else
-  printf '#[default]'
-fi
+# Machine name — color signals whether this pane is SSH'd out; the name
+# itself is always the local host tmux is running on.
+printf '#[default] #[fg=colour%s]%s' "$_host_color" "$(hostname -s)"
