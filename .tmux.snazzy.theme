@@ -6,6 +6,13 @@ set -g status-style bg=colour0,fg=colour205
 
 # ─── Window tabs ──────────────────────────────────────────────
 
+# Tab fg colours, consumed by the window-status formats in .tmux.conf
+# (per-window: cyan when the pane is SSH'd out). dim/bold come from the
+# style options below, so the SSH cyan is dim on inactive tabs too.
+set -g @tab-fg '123'          # inactive, local
+set -g @tab-current-fg '84'   # active, local
+set -g @tab-ssh-fg '81'       # SSH'd pane — matches status-right host cyan
+
 set -g window-status-style fg=colour123,dim
 set -g window-status-current-style fg=colour84,bold
 set -g window-status-bell-style fg=colour209,bold,nodim

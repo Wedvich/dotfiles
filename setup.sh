@@ -61,6 +61,7 @@ link_dotfiles() {
   local -a links=(
     .agent-bridge.sh       "$HOME/.agent-bridge.sh"
     .editorconfig          "$HOME/.editorconfig"
+    .tmux-pane-ssh.sh      "$HOME/.tmux-pane-ssh.sh"
     .tmux-status-right.sh  "$HOME/.tmux-status-right.sh"
     .tmux.conf             "$HOME/.tmux.conf"
     .tmux.snazzy.theme     "$HOME/.tmux.snazzy.theme"

@@ -13,24 +13,8 @@ pane_path="$3"
 
 local_host="$(hostname -s)"
 
-# SSH detection: matches direct ssh, gcloud compute ssh, and wrappers.
-# gcloud compute ssh is a 3-level deep process tree (shell → gcloud → ssh),
-# so we collect all descendants up to 3 levels deep before checking.
-_children() { pgrep -P "$1" 2>/dev/null; }
-_ssh_pids="$pane_pid"
-for _p in $(_children "$pane_pid"); do
-  _ssh_pids="$_ssh_pids $_p"
-  for _pp in $(_children "$_p"); do
-    _ssh_pids="$_ssh_pids $_pp"
-  done
-done
-# word-splitting intended: $_ssh_pids is a space-separated PID list, one arg each
-# shellcheck disable=SC2086
-_ssh_cmds="$(ps -o command= -p $_ssh_pids 2>/dev/null | tr '\n' ' ')"
-case "$_ssh_cmds" in
-  *ssh*) _is_ssh=1;;
-  *)     _is_ssh=0;;
-esac
+# SSH detection shared with the window-tab colouring in .tmux.conf.
+_is_ssh="$("$HOME/.tmux-pane-ssh.sh" "$pane_pid" "$pane_path")"
 
 # Remote host + cwd, when the pane's OSC 7 report names a host that isn't this
 # one. A missing hostname (file:///path) means the reporter is local.
