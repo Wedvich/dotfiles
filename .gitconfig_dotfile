@@ -56,7 +56,7 @@
 [alias]
   # set-head first: origin/HEAD is unset on plenty of clones, and without it the
   # symbolic-ref below fails with nothing useful to say.
-  home = !git remote set-head origin --auto >/dev/null 2>&1; git checkout $(git symbolic-ref refs/remotes/origin/HEAD --short | sed 's|origin/||') && git pull
+  home = "!git remote set-head origin --auto >/dev/null 2>&1; b=$(git symbolic-ref refs/remotes/origin/HEAD --short) && git checkout ${b#origin/} && git pull"
   gone = "!git remote update --prune && git branch -vv | awk '/: gone]/ {print $1}' | xargs -r git branch -d"
 
 [rerere]
