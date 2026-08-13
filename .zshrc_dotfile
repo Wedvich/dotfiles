@@ -58,6 +58,16 @@ setopt hist_verify            # show command with history expansion to user befo
 setopt share_history          # share command history data
 setopt hist_fcntl_lock        # fcntl locking on HISTFILE writes; cheap insurance with many concurrent shells
 
+# Report host + cwd to the terminal on every prompt (OSC 7). tmux keeps the last
+# report in #{pane_path}, which is how .tmux-status-right.sh learns where an
+# SSH'd pane actually is — tmux runs locally and can't see past the ssh process.
+autoload -Uz add-zsh-hook
+_osc7_report() {
+  local url=${PWD//\%/%25}
+  printf '\e]7;file://%s%s\e\\' "${HOST%%.*}" "${url// /%20}"
+}
+add-zsh-hook precmd _osc7_report
+
 # Plugins
 for _plugin in zsh-autosuggestions zsh-autocomplete zsh-syntax-highlighting; do
   [ -f ~/.zsh/$_plugin/$_plugin.plugin.zsh ] && source ~/.zsh/$_plugin/$_plugin.plugin.zsh
