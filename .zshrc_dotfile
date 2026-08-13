@@ -68,6 +68,15 @@ _osc7_report() {
 }
 add-zsh-hook precmd _osc7_report
 
+# zsh-autocomplete points cdr's recent-dirs file at $XDG_DATA_HOME/zsh but never
+# creates the dir, so a fresh host errors on every chpwd.
+_zsh_data="${XDG_DATA_HOME:-$HOME/.local/share}/zsh"
+[ -d "$_zsh_data" ] || mkdir -p "$_zsh_data"
+unset _zsh_data
+
+# Cap the cdr list; zsh-autocomplete would otherwise set it unlimited.
+zstyle ':chpwd:*' recent-dirs-max 100
+
 # Plugins
 for _plugin in zsh-autosuggestions zsh-autocomplete zsh-syntax-highlighting; do
   [ -f ~/.zsh/$_plugin/$_plugin.plugin.zsh ] && source ~/.zsh/$_plugin/$_plugin.plugin.zsh
