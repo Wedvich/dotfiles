@@ -9,6 +9,12 @@ truncation_length = 0
 [container]
 disabled = true
 
+[username]
+disabled = true
+
+[hostname]
+disabled = true
+
 [gcloud]
 disabled = true
 
