@@ -10,8 +10,7 @@ if [ -d "$HOMEBREW_PREFIX/opt/make/libexec/gnubin" ]; then
 fi
 
 # Create or attach to tmux session if not already in one.
-# Skipped over ssh: remote hosts get a plain shell, tmux there is on-demand only.
-if [ -z "$TMUX" ] && [ -z "$SSH_CONNECTION" ] && command -v tmux >/dev/null 2>&1; then
+if [ -z "$TMUX" ] && command -v tmux >/dev/null 2>&1; then
   if tmux has-session -t main >/dev/null 2>&1; then
     local detached_session=$(tmux list-sessions -F '#{session_name}' -f '#{&&:#{==:#{session_group},main},#{==:#{session_attached},0}}' 2>/dev/null | head -n1)
     if [ -n "$detached_session" ]; then
