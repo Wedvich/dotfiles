@@ -61,10 +61,17 @@ setopt hist_fcntl_lock        # fcntl locking on HISTFILE writes; cheap insuranc
 # Report host + cwd to the terminal on every prompt (OSC 7). tmux keeps the last
 # report in #{pane_path}, which is how .tmux-status-right.sh learns where an
 # SSH'd pane actually is — tmux runs locally and can't see past the ssh process.
+# Prefer the stable LocalHostName over $HOST: with scutil's HostName unset,
+# macOS rebuilds the transient hostname from DHCP on every network change, and
+# zsh freezes $HOST at startup — so a shell that outlives a WiFi switch would
+# keep reporting a name this machine no longer answers to. Resolved once per
+# shell; a stale-but-stable name beats a per-prompt fork.
 autoload -Uz add-zsh-hook
+_osc7_host="$(scutil --get LocalHostName 2>/dev/null)"
+: ${_osc7_host:=${HOST%%.*}}
 _osc7_report() {
   local url=${PWD//\%/%25}
-  printf '\e]7;file://%s%s\e\\' "${HOST%%.*}" "${url// /%20}"
+  printf '\e]7;file://%s%s\e\\' "$_osc7_host" "${url// /%20}"
 }
 add-zsh-hook precmd _osc7_report
 

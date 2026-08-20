@@ -35,15 +35,19 @@ esac
 
 # OSC 7 check: a reported hostname that isn't this machine means remote.
 # A missing hostname (file:///path) means the reporter is local.
-local_host="$(hostname -s)"
+# Missing helper (a pull that outran setup.sh) must not take the pane with it:
+# `.` on an absent file kills a non-interactive shell, which would blank the
+# tmux format entirely. Fail closed to "local" instead.
+if [ -r "$HOME/.tmux-local-host.sh" ]; then
+  . "$HOME/.tmux-local-host.sh"
+else
+  _is_local_host() { return 0; }
+fi
 case "$pane_path" in
   file://*/*)
     _rest="${pane_path#file://}"
     _reported="${_rest%%/*}"
-    case "$_reported" in
-      "$local_host" | "$local_host".* | localhost | '') ;;
-      *) printf '%s' "$ssh_out"; exit 0;;
-    esac
+    _is_local_host "$_reported" || { printf '%s' "$ssh_out"; exit 0; }
     ;;
 esac
 

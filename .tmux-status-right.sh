@@ -11,7 +11,20 @@ pane_pid="$1"
 pane_current_path="$2"
 pane_path="$3"
 
-local_host="$(hostname -s)"
+# Missing helper (a pull that outran setup.sh) must not take the pane with it:
+# `.` on an absent file kills a non-interactive shell, which would blank the
+# tmux format entirely. Fail closed to "local" instead.
+if [ -r "$HOME/.tmux-local-host.sh" ]; then
+  . "$HOME/.tmux-local-host.sh"
+else
+  _is_local_host() { return 0; }
+fi
+
+# Display the same stable name the matching uses, so the status bar host and the
+# OSC 7 reports can't disagree after a DHCP rename.
+_resolve_local_names 2>/dev/null
+local_host="${_local_names%% *}"
+: "${local_host:=$(hostname -s)}"
 
 # SSH detection shared with the window-tab colouring in .tmux.conf.
 _is_ssh="$("$HOME/.tmux-pane-ssh.sh" "$pane_pid" "$pane_path")"
@@ -24,10 +37,10 @@ case "$pane_path" in
   file://*/*)
     _rest="${pane_path#file://}"
     _reported="${_rest%%/*}"
-    case "$_reported" in
-      "$local_host" | "$local_host".* | localhost | '') ;;
-      *) remote_host="$_reported"; remote_path="/${_rest#*/}";;
-    esac
+    if ! _is_local_host "$_reported"; then
+      remote_host="$_reported"
+      remote_path="/${_rest#*/}"
+    fi
     ;;
 esac
 
