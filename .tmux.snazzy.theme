@@ -13,6 +13,10 @@ set -g @tab-fg '123'          # inactive, local
 set -g @tab-current-fg '84'   # active, local
 set -g @tab-ssh-fg '81'       # SSH'd pane — matches status-right host cyan
 
+# Rule under a nested-tmux pane (.tmux-nested-frame.sh) — same grey as an
+# inactive pane border, so it reads as chrome rather than as an active border.
+set -g @nested-frame-fg '238'
+
 set -g window-status-style fg=colour123,dim
 set -g window-status-current-style fg=colour84,bold
 set -g window-status-bell-style fg=colour209,bold,nodim
