@@ -26,6 +26,13 @@ _frame_fg="$(tmux show -gqv '@nested-frame-fg' 2>/dev/null)"
 # window-status-format renders as " 1:name", and any stock tmux config puts an
 # "index:name" tab list in the same place.
 #
+# The tab list is not anchored to column 0, though. Once it outgrows the status
+# width tmux scrolls it to keep the current window visible and marks the cut with
+# "<", so the row opens with the tail of a clipped name: "<ollow-up  5:next …".
+# Hence a tab is accepted anywhere in the row as long as a space (or the row
+# start) precedes it — with window-status-separator '' the tabs' own padding
+# supplies that space.
+#
 # The digit after the colon is rejected so a tailed log ending in "12:34:56 …"
 # on a full screen doesn't read as a tab list. Cost: a remote window named
 # "2fa-fix" gets no rule. A missed rule beats a phantom one that flickers with
@@ -34,14 +41,8 @@ _frame_fg="$(tmux show -gqv '@nested-frame-fg' 2>/dev/null)"
 # Usage: _has_status_line <pane_id> <pane_height>
 _has_status_line() {
   _row="$(tmux capture-pane -p -t "$1" -S "$(($2 - 1))" -E "$(($2 - 1))" 2>/dev/null)"
-  while :; do
-    case "$_row" in
-      ' '*) _row="${_row# }";;
-      *) break;;
-    esac
-  done
-  case "$_row" in
-    [0-9]:[!0-9\ ]* | [0-9][0-9]:[!0-9\ ]*) return 0;;
+  case " $_row" in
+    *\ [0-9]:[!0-9\ ]* | *\ [0-9][0-9]:[!0-9\ ]*) return 0;;
   esac
   return 1
 }
@@ -66,24 +67,30 @@ _apply() {
   fi
 }
 
-# pane_path last: it can be empty, and `read` would otherwise shift the fields.
+# Every pane on the window's bottom row is a candidate, since side-by-side panes
+# share pane_bottom and any one of them may hold the nested tmux. Records are
+# newline-separated with pane_path last: it can be empty, and `read` would
+# otherwise shift the fields.
 tmux list-panes -a -F '#{window_id} #{pane_bottom} #{pane_id} #{pane_height} #{pane_pid} #{pane-border-status} #{pane_path}' \
   2>/dev/null | {
   cur_win=''
   cur_status=''
   best_bottom=-1
-  best_pane=''
-  best_height=0
-  best_pid=''
-  best_path=''
+  candidates=''
 
   _flush() {
     [ -n "$cur_win" ] || return 0
     _want=off
-    if [ "$("$HOME/.tmux-pane-ssh.sh" "$best_pid" "$best_path")" = 1 ] &&
-      _has_status_line "$best_pane" "$best_height"; then
-      _want=bottom
-    fi
+    while read -r c_pane c_height c_pid c_path; do
+      [ -n "$c_pane" ] || continue
+      if [ "$("$HOME/.tmux-pane-ssh.sh" "$c_pid" "$c_path")" = 1 ] &&
+        _has_status_line "$c_pane" "$c_height"; then
+        _want=bottom
+        break
+      fi
+    done <<EOF_CANDIDATES
+$candidates
+EOF_CANDIDATES
     _apply "$cur_win" "$_want" "$cur_status"
   }
 
@@ -93,15 +100,17 @@ tmux list-panes -a -F '#{window_id} #{pane_bottom} #{pane_id} #{pane_height} #{p
       cur_win="$win"
       cur_status="$status"
       best_bottom=-1
+      candidates=''
     fi
-    # Height, not layout order, picks the bottom pane: pane_bottom shifts by a
-    # row once the border status is on, but the largest one stays the largest.
+    # Height, not layout order, picks the bottom row: pane_bottom shifts by one
+    # once the border status is on, but the largest stays the largest.
     if [ "$bottom" -gt "$best_bottom" ]; then
       best_bottom="$bottom"
-      best_pane="$pane"
-      best_height="$height"
-      best_pid="$pid"
-      best_path="$path"
+      candidates=''
+    fi
+    if [ "$bottom" -eq "$best_bottom" ]; then
+      candidates="$candidates
+$pane $height $pid $path"
     fi
   done
   _flush
