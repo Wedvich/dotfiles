@@ -1,2 +1,5 @@
 .DS_Store
 .claude/worktrees/
+
+# written by Claude Code when it loads a mod
+claude-mods/*/.claude-plugin/types/
