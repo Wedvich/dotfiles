@@ -6,11 +6,15 @@
 # own session's payload.
 #
 # Layout (whole line gray; absolute context tokens turn yellow above 150k):
-#   Opus 4.8 (high) · <ctx> 187k (19%) · <lim> 24% (5h) 41% (7d) · <branch> main
+#   Opus 4.8 (high) · <ctx> 187k (19%) · <lim> 24% (5h) 41% (7d) me@x.no · <branch> main
 #
-# Missing-data policy (hybrid): effort and branch omit their segment entirely
-# when absent (no effort level; not in a git repo, or detached HEAD). Context
-# and rate-limit values that haven't arrived yet hold their slot with a gray "–".
+# Account is the one input not on stdin: read from the config dir's
+# .claude.json, so CLAUDE_CONFIG_DIR exclaves each show their own login.
+#
+# Missing-data policy (hybrid): effort, account and branch omit their segment
+# entirely when absent (no effort level; not logged in; not in a git repo, or
+# detached HEAD). Context and rate-limit values that haven't arrived yet hold
+# their slot with a gray "–".
 
 set -o pipefail
 
@@ -77,6 +81,14 @@ fmt_pct() {
 	fi
 }
 line+="$(fmt_pct "$h5") (5h) $(fmt_pct "$d7") (7d)"
+
+if [[ -n $CLAUDE_CONFIG_DIR ]]; then
+	claude_json="$CLAUDE_CONFIG_DIR/.claude.json"
+else
+	claude_json="$HOME/.claude.json"
+fi
+account="$(jq -r '.oauthAccount.emailAddress // empty' "$claude_json" 2>/dev/null)"
+[[ -n $account ]] && line+=" ${account}"
 
 if [[ -n $cwd ]]; then
 	branch="$(git -C "$cwd" branch --show-current 2>/dev/null)"
