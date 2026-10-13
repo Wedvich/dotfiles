@@ -21,8 +21,9 @@ Each piece: check first, skip if already in the target state, report skips. So r
 
 | Piece | Add | Remove |
 |---|---|---|
-| Dirs `~/.claude-<exclave>`, `~/<exclave>` | `mkdir -p` | Leave alone (step 4) |
+| Dirs `~/.claude-<exclave>/skills`, `~/<exclave>` | `mkdir -p` | Leave alone (step 4) |
 | `~/.claude-<exclave>/settings.json` | If missing: `cp ~/.claude/settings.json` there; never overwrite | Leave alone |
+| User skill links (B) | Per (B) | Leave alone |
 | `~/.gitconfig_<exclave>` | If missing: create with commented `[user]` stub (name/email); never overwrite | Leave alone |
 | `~/.gitconfig` block (A) | Append | Delete exactly (A) |
 | Firefox profile `<exclave>` | `~/.local/bin/exclave-browser --create-profile <exclave>` (skips an existing one) | Leave alone |
@@ -34,11 +35,22 @@ Each piece: check first, skip if already in the target state, report skips. So r
 	path = ~/.gitconfig_<exclave>
 ```
 
-Change files with Edit (Write only to create a missing file), never sed or `>>`. Edit nothing outside the table: the shell hook in `~/.zshenv_dotfile` reads `~/.exclaves` on every `cd`, so never touch `~/.zshenv`, `~/.zshenv_dotfile` or `~/.local/bin/exclave-browser`.
+(B) For each entry `<name>` in `~/.claude/skills/`, except `synced` and dot-entries (`.trash` etc.). `synced` holds the claude.ai account's own skills, and each exclave is a separate account with its own. Let `src` = `~/.claude/skills/<name>`, `dst` = `~/.claude-<exclave>/skills/<name>`:
+
+1. `src` doesn't resolve to a directory (`[ -d src ]` false: a loose file or broken link): skip, report.
+2. `dst` is a link and `readlink dst` equals `src` with `~` expanded: skip, already done.
+3. `dst` is a link to anything else, or a broken link: leave it for now and carry on with the rest of the table. Once everything else is done, list each with its `readlink dst` and ask once whether to replace them with `ln -sfn src dst`.
+4. `dst` exists and is not a link: skip, report (an exclave-only skill; never touch it).
+5. Otherwise: `ln -s src dst`.
+
+Link to the `~/.claude` path, not its resolved target: a chain still resolves, and follows wherever `setup.sh` points `src` later. Links, not copies, so edits carry over; a skill added later needs `/exclave <exclave>` re-run.
+
+Make the (B) links with `ln` in Bash; that's the only shell write allowed. Change files with Edit (Write only to create a missing file), never sed or `>>`. Edit nothing outside the table: the shell hook in `~/.zshenv_dotfile` reads `~/.exclaves` on every `cd`, so never touch `~/.zshenv`, `~/.zshenv_dotfile` or `~/.local/bin/exclave-browser`.
 
 ## 3. Verify
 
-Run all three and show me the output:
+Run these and show me the output:
+- Add only: `ls -l ~/.claude-<exclave>/skills/`, and `find -L ~/.claude-<exclave>/skills -maxdepth 1 -type l`, which lists broken links and must print nothing (one you were told not to replace in (B) step 3 is the exception: name it)
 - `cat ~/.exclaves`
 - `git config --file ~/.gitconfig --get-regexp includeif`
 - `env -u EXCLAVE -u CLAUDE_CONFIG_DIR zsh -c 'cd ~/<exclave> && print -r -- "${CLAUDE_CONFIG_DIR-unset}"'`: must print `~/.claude-<exclave>` expanded after add, and `unset` after remove. (`env -u` drops this session's own values, which would otherwise leak in.)
