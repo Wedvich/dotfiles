@@ -25,6 +25,48 @@ fi
 # WSL only: point browser-opening tools at the wslview shim setup.sh links.
 [[ "$IS_WSL" == true ]] && export BROWSER=wslview
 
+# Exclaves (the /exclave skill): inside ~/<name>/, for each name in the per-machine
+# ~/.exclaves (one per line), Claude Code and $BROWSER use that exclave's config dir
+# and Firefox profile. Leaving restores the outer values rather than unsetting, so
+# WSL's BROWSER=wslview and an inherited CLAUDE_CONFIG_DIR survive. They're kept in
+# exported vars because child shells started inside an exclave only get the env.
+_exclave_vars=(CLAUDE_CONFIG_DIR FIREFOX_PROFILE BROWSER)
+update_exclave_env() {
+  local name active var prev
+  if [[ -r "$HOME/.exclaves" ]]; then
+    for name in ${(f)"$(<"$HOME/.exclaves")"}; do
+      if [[ "$PWD/" == "$HOME/$name/"* ]]; then
+        active=$name
+        break
+      fi
+    done
+  fi
+
+  if [[ -n "$active" ]]; then
+    # Only on entry from outside: moving between exclaves, the vars hold exclave values.
+    if [[ -z "$EXCLAVE" ]]; then
+      for var in $_exclave_vars; do
+        prev="_EXCLAVE_PREV_$var"
+        if [[ -v $var ]]; then export "$prev=${(P)var}"; else unset "$prev"; fi
+      done
+    fi
+    export EXCLAVE="$active" CLAUDE_CONFIG_DIR="$HOME/.claude-$active" \
+      FIREFOX_PROFILE="$active" BROWSER="$HOME/.local/bin/exclave-browser"
+    return 0
+  fi
+
+  [[ -z "$EXCLAVE" ]] && return 0
+  for var in $_exclave_vars; do
+    prev="_EXCLAVE_PREV_$var"
+    if [[ -v $prev ]]; then export "$var=${(P)prev}"; else unset "$var"; fi
+    unset "$prev"
+  done
+  unset EXCLAVE
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook chpwd update_exclave_env
+update_exclave_env
+
 (( $(ulimit -n) < 65536 )) && ulimit -n 65536
 
 # Prepend ~/.local/bin and the mise shims (shims cover non-interactive shells &

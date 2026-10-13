@@ -52,7 +52,8 @@ apt_ensure() {
 link_file() {
   [ -e "$2" ] && [ "$2" -ef "$1" ] && return
   show_once link "Linking dotfiles..."
-  ln -fsv "$1" "$2"
+  # -n: a destination that's already a dir symlink would otherwise get the link inside it.
+  ln -fnsv "$1" "$2"
 }
 
 link_dotfiles() {
@@ -87,6 +88,10 @@ link_dotfiles() {
       # newer keys like gpg.format=ssh so hard that every git command dies.
       .allowed_signers       "$HOME/.allowed_signers"
       .gitconfig_dotfile     "$HOME/.gitconfig_dotfile"
+
+      # Exclaves need Claude Code and Firefox, which minimal hosts don't have.
+      .claude/skills/exclave "$HOME/.claude/skills/exclave"
+      exclave-browser.sh     "$HOME/.local/bin/exclave-browser"
     )
   fi
 
