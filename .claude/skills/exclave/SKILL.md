@@ -17,13 +17,14 @@ Args: `$ARGUMENTS`. A leading `remove` selects removal; otherwise add.
 
 ## 2. Apply
 
-Each piece: check first, skip if already in the target state, report skips. So re-running is safe. Work through every row before stopping; the only questions to ask are the ones this skill names (step 1, (B) step 3, step 4).
+Each piece: check first, skip if already in the target state, report skips. So re-running is safe. Work through every row before stopping; the only questions to ask are the ones this skill names (step 1, (B) step 3, (C) `differs`, step 4).
 
 | Piece | Add | Remove |
 |---|---|---|
 | Dirs `~/.claude-<exclave>/{skills,agents}`, `~/<exclave>` | `mkdir -p` | Leave alone (step 4) |
 | `~/.claude-<exclave>/settings.json` | If missing: `cp ~/.claude/settings.json` there; never overwrite | Leave alone |
 | User skill and agent links (B) | Per (B) | Leave alone |
+| User-scope MCP servers (C) | Per (C) | Leave alone |
 | `~/.gitconfig_<exclave>` | If missing: create with commented `[user]` stub (name/email); never overwrite | Leave alone |
 | `~/.gitconfig` block (A) | Append | Delete exactly (A) |
 | Firefox profile `<exclave>` | `~/.local/bin/exclave-browser --create-profile <exclave>` (skips an existing one) | Leave alone |
@@ -54,12 +55,27 @@ For each entry `<name>`, let `src` = `~/.claude/<kind>/<name>`, `dst` = `~/.clau
 
 Link to the `~/.claude` path, not its resolved target: a chain still resolves, and follows wherever `setup.sh` points `src` later. Links, not copies, so edits carry over; a skill or agent added later needs `/exclave <exclave>` re-run.
 
-Make the (B) links with `ln` in Bash; that's the only shell write allowed. Change files with Edit (Write only to create a missing file), never sed or `>>`. Edit nothing outside the table: the shell hook in `~/.zshenv_dotfile` reads `~/.exclaves` on every `cd`, so never touch `~/.zshenv`, `~/.zshenv_dotfile` or `~/.local/bin/exclave-browser`.
+(C) Copies the user-scope MCP servers (top-level `mcpServers` in `~/.claude.json`) into the exclave. Entries can hold API keys, so never print one; this prints names only. Run it as-is:
+
+```sh
+src=~/.claude.json; dst=~/.claude-<exclave>/.claude.json
+jq -r '.mcpServers // {} | keys[]' "$src" | while read -r n; do
+  a=$(jq -cS --arg n "$n" '.mcpServers[$n]' "$src")
+  b=$(jq -cS --arg n "$n" '.mcpServers[$n] // empty' "$dst" 2>/dev/null)
+  if [ -z "$b" ]; then CLAUDE_CONFIG_DIR=~/.claude-<exclave> claude mcp add-json --scope user "$n" "$a" >/dev/null 2>&1 && echo "added $n" || echo "FAILED $n"
+  elif [ "$a" = "$b" ]; then echo "same $n"; else echo "differs $n"; fi
+done
+```
+
+For `differs`, ask once (names only) whether to replace; on yes, run `CLAUDE_CONFIG_DIR=~/.claude-<exclave> claude mcp remove --scope user <server>` for each and re-run the script. Never touch servers that exist only in the exclave. OAuth servers need their own `/mcp` sign-in per exclave.
+
+Make the (B) links with `ln` and the (C) entries with its script in Bash; those are the only shell writes allowed. Change files with Edit (Write only to create a missing file), never sed or `>>`. Edit nothing outside the table: the shell hook in `~/.zshenv_dotfile` reads `~/.exclaves` on every `cd`, so never touch `~/.zshenv`, `~/.zshenv_dotfile` or `~/.local/bin/exclave-browser`.
 
 ## 3. Verify
 
 Run these and show me the output:
 - Add only: `ls -l ~/.claude-<exclave>/{skills,agents}/`, and `find -L ~/.claude-<exclave>/{skills,agents} -maxdepth 1 -type l`, which lists broken links and must print nothing (one you were told not to replace in (B) step 3 is the exception: name it)
+- Add only: re-run the (C) script; every line must be `same` (a `differs` you were told not to replace is the exception: name it)
 - `cat ~/.exclaves`
 - `git config --file ~/.gitconfig --get-regexp includeif`
 - `env -u EXCLAVE -u CLAUDE_CONFIG_DIR zsh -c 'cd ~/<exclave> && print -r -- "${CLAUDE_CONFIG_DIR-unset}"'`: must print `~/.claude-<exclave>` expanded after add, and `unset` after remove. (`env -u` drops this session's own values, which would otherwise leak in.)
