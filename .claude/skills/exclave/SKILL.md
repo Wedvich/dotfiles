@@ -53,7 +53,7 @@ For each entry `<name>`, let `src` = `~/.claude/<kind>/<name>`, `dst` = `~/.clau
 4. `dst` exists and is not a link: skip, report (exclave-only; never touch it).
 5. Otherwise: `ln -s src dst`.
 
-Link to the `~/.claude` path, not its resolved target: a chain still resolves, and follows wherever `setup.sh` points `src` later. Links, not copies, so edits carry over; a skill or agent added later needs `/exclave <exclave>` re-run.
+Link to the `~/.claude` path, not its resolved target: a chain still resolves, and follows wherever `setup.sh` points `src` later. Links, not copies, so edits carry over. A skill or agent added later needs `/exclave <exclave>` re-run, unless it lives in the dotfiles repo: `setup.sh` links those into every exclave in `~/.exclaves`.
 
 (C) Copies the user-scope MCP servers (top-level `mcpServers` in `~/.claude.json`) into the exclave. Entries can hold API keys, so never print one; this prints names only. Run it as-is:
 

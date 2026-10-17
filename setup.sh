@@ -51,14 +51,27 @@ apt_ensure() {
 
 link_file() {
   [ -e "$2" ] && [ "$2" -ef "$1" ] && return
+  # ln would put the link inside a real directory (e.g. a skill installed by hand
+  # before it moved here) rather than replace it.
+  if [ -d "$2" ] && [ ! -L "$2" ]; then
+    echo "Warning: $2 is a real directory; move it aside and re-run to link it." >&2
+    return
+  fi
   show_once link "Linking dotfiles..."
   # -n: a destination that's already a dir symlink would otherwise get the link inside it.
   ln -fnsv "$1" "$2"
 }
 
+# Repo paths of the Claude skills and agents, relative to the repo, in $reply.
+claude_entries() {
+  reply=("$DOTFILES_PATH"/.claude/{skills/*(N/),agents/*.md(N)})
+  reply=(${reply#$DOTFILES_PATH/})
+}
+
 link_dotfiles() {
   # An explicit map, deliberately not a glob over the repo's dot-files: a glob
-  # links anything added later (a .gitignore, say) straight into $HOME.
+  # links anything added later (a .gitignore, say) straight into $HOME. Claude
+  # skills and agents are the exception, globbed within .claude/ only.
   local -a links=(
     .agent-bridge.sh       "$HOME/.agent-bridge.sh"
     .editorconfig          "$HOME/.editorconfig"
@@ -90,9 +103,16 @@ link_dotfiles() {
       .gitconfig_dotfile     "$HOME/.gitconfig_dotfile"
 
       # Exclaves need Claude Code and Firefox, which minimal hosts don't have.
-      .claude/skills/exclave "$HOME/.claude/skills/exclave"
       exclave-browser.sh     "$HOME/.local/bin/exclave-browser"
     )
+
+    # Skills and agents need Claude Code too. Agents are linked one file at a
+    # time: ~/.claude/agents may hold others.
+    local entry
+    claude_entries
+    for entry in $reply; do
+      links+=("$entry" "$HOME/$entry")
+    done
   fi
 
   # WSL ships no xdg-open, so tools that shell out to a browser (gh auth login)
@@ -107,11 +127,34 @@ link_dotfiles() {
     link_file "$DOTFILES_PATH/$src" "$dst"
   done
 
+  if [[ "$MINIMAL" != true ]]; then
+    link_exclave_claude
+  fi
+
   # starship.toml used to land undotted in $HOME, found via $STARSHIP_CONFIG.
   # An if, not &&: a false tail would make the function return 1 under set -e.
   if [ -L "$HOME/starship.toml" ]; then
     rm "$HOME/starship.toml"
   fi
+}
+
+# /exclave links user skills and agents into an exclave only when it runs; this
+# brings ones added to the repo later into existing exclaves too. Links go via
+# ~/.claude, as /exclave makes them, and anything already at the destination is
+# left alone: an exclave-only file or a link the user chose to keep.
+link_exclave_claude() {
+  [ -r "$HOME/.exclaves" ] || return 0
+  local name entry dst
+  claude_entries
+  for name in ${(f)"$(<"$HOME/.exclaves")"}; do
+    [ -d "$HOME/.claude-$name" ] || continue
+    for entry in $reply; do
+      dst="$HOME/.claude-$name/${entry#.claude/}"
+      [ -e "$dst" ] || [ -L "$dst" ] && continue
+      mkdir -p "${dst:h}"
+      link_file "$HOME/$entry" "$dst"
+    done
+  done
 }
 
 configure_claude() {
