@@ -343,7 +343,8 @@ the defects neither the implementer's tests nor a diff review can see:
 To add or change, per repo, following the repo's and user's testing conventions.
 
 ## Docs to update
-README, JSDoc or CLAUDE.md sections that already cover the changed behaviour, or "none".
+README, JSDoc, CLAUDE.md or docs sections that already cover the changed behaviour, in
+any repo, including ones the steps don't otherwise touch; or "none".
 
 ## Verification
 Exact commands per repo (package manager, local binaries) and what passing looks like:
@@ -372,8 +373,8 @@ definition, raise `L` (unless forced) or reclassify, and say so.
 **Run the plan review only when at least one trigger holds** for the plan as written:
 
 - `L` is high;
-- the steps change two or more deployable repos or services (an HQ docs or spec change
-  alongside one repo doesn't count);
+- the steps change two or more deployable repos or services (a docs or spec change
+  in a workspace hub alongside one repo doesn't count);
 - *Outside the diff* names a rollout order, or a consumer that the steps change
   behaviour for;
 - money figures shown or told to users change how they are computed or worded;
@@ -409,6 +410,9 @@ reason): the implementer would read rejected findings as instructions, and step 
 uses the applied ones. If the review shows `L` was wrong, change it now and say so
 (unless forced; see *Forced level*).
 
+If *Docs to update* names a repo that has no worktree yet (a workspace hub's docs, for
+example), create one as in step 2, so the implementer updates those docs in this run.
+
 Before step 5, `plan.md` must have no unresolved open questions. Under each one, write
 the user's answer or your decision and why. Ask the user only about the ones that
 change the outcome.
@@ -443,11 +447,21 @@ show whether the page matches the design.
 
 Consolidate. This is where the filtering happens:
 
-1. Check each finding against the code yourself, and drop what doesn't hold.
+1. Check each finding against the code yourself, and drop what doesn't hold. The
+   implementer's *Out of scope* notes go through the same sort.
 2. Sort what holds:
-   - **Fix** anything that could cause wrong behaviour, a test failure, a security gap
-     at a boundary, or a breach of `plan.md` or a CLAUDE.md rule.
-   - **Defer** valid improvements outside the plan's scope.
+   - **Fix** by default. That covers wrong behaviour, test failures, security gaps and
+     breaches of `plan.md` or a CLAUDE.md rule, and also edge cases, error paths,
+     missing or lost tests, a11y, stale comments and docs, and small existing defects
+     in the files and flows the diff touches. Being low severity, rare, cosmetic or
+     pre-existing is not a reason to defer: the fix is cheapest now, while the context
+     is loaded, and a deferred finding costs the user a decision and a later session.
+   - **Defer** only when the fix needs one of these: a product, design or copy decision
+     that neither the task nor `CLAUDE.md` settles; a repo or service outside this run
+     that has its own rollout; work big enough to need its own plan; or an area from the
+     *high* list (step 1) that this run's plan didn't cover. The same bug in a sibling
+     flow the diff doesn't touch is deferred too. Note which reason applies. When torn,
+     fix.
    - **Reject** pure style or naming preferences the repo's linter doesn't enforce.
 3. Make small fixes yourself. For larger ones, dispatch a **fresh** implementer
    (`ship-build-L`, `sonnet`) with a review-findings brief: the worktree and branch,
@@ -457,8 +471,9 @@ Consolidate. This is where the filtering happens:
    that depends on the change, in every kind the repo has, not the directory you edited.
 4. Re-review only if the fixes were substantial, and at most one more round.
 
-Keep the consolidated list (fixed / deferred / rejected, each with a reason) in
-`review-consolidated.md`, for the PR descriptions and step 10.
+Keep the consolidated list (fixed / deferred / rejected, each with a reason; for a
+deferral, the reason from the list above) in `review-consolidated.md`, for the PR
+descriptions and step 10.
 
 ## 7. Open the PRs
 
@@ -589,15 +604,43 @@ Otherwise, run it now, without asking. It is part of shipping, not a follow-up.
 4. If a check fails, treat it like a CI logic failure (step 8): diagnose, fix through a
    new branch and PR, and verify again.
 
+Cleanup is part of the check: the brief tells `ship-check` to remove what the check
+created on dev (threads, tasks, throwaway users, values it changed on the test
+account). Leave something only when removing it needs a credential the run doesn't
+have, or would touch data the check didn't create.
+
 Report what was checked, as which account, the results, and any state left behind on
-dev.
+dev, with the reason it was left.
 
 ## 10. Summary and follow-ups
 
+### Finish first
+
+A follow-up is work that has to wait: for a decision, another repo's rollout, or a
+plan of its own. Before the summary, do whatever you'd otherwise offer as "do it now"
+and that doesn't need the user's say-so:
+
+- a fix that passes step 6's *Fix* rule, including one the dev check turned up; once
+  the PRs have merged, it goes through a new branch and PR (step 9, item 4);
+- a docs touch-up in any repo that describes what changed;
+- a Linear comment on the source issue or a related issue that records a finding,
+  without asking anyone for anything;
+- removing this run's own worktrees, branches and dev check state.
+
+List these under *What shipped*.
+
+Some actions on this run's own work need the user's say-so: merging a PR on a repo with
+no merge gate, a prod deploy or a prod data change, deleting data the run didn't
+create, or a comment that asks a named person for a decision. Put these in a question
+of their own, in the same `AskUserQuestion` call as the follow-ups, with one option per
+action plus "Not now". Keep them out of the follow-up list.
+
+### Summary
+
 End the run with a summary. It always has these parts, in this order:
 
-1. **What shipped:** the PR links, review findings fixed vs deferred vs rejected, and
-   the dev check result.
+1. **What shipped:** the PR links, review findings fixed vs deferred vs rejected, what
+   you finished in *Finish first*, and the dev check result.
 2. **Assessment:** the Assessment block from `progress.md`, updated with the level
    actually used and any escalation.
 3. **Cost:** run the cost script and paste its table as-is.
@@ -609,29 +652,34 @@ End the run with a summary. It always has these parts, in this order:
    this session started in. The table covers everything up to this point, not the
    follow-up actions after it.
 
-Then gather the follow-up items: deferred review findings, scope you noticed but didn't
-touch, and open questions still unresolved.
+### Follow-ups
 
-Every deferred review finding counts as a follow-up item; the user decides whether it's
-worth tracking, not you. Consolidate before asking: group items that share a cause, a
-file or an obvious single fix into one item (e.g. "3 deferred review findings in the
-guard spec → one Linear issue"), and fold anything too small to act on into a
-one-line mention in the summary. Aim for at most four items, since that's what one
-question holds.
+Gather the follow-up items: everything deferred under step 6's rule (from the reviews,
+the implementer's notes, the dev check or your own reading), scope the task explicitly
+left out, and open questions still unresolved. Every deferred finding counts as an item; the
+user decides whether it's worth tracking, not you. Consolidate before asking: group
+items that share a cause, a file or an obvious single fix into one item (e.g. "3
+deferred review findings in the guard spec → one Linear issue"). At most four items,
+since that's what one question holds; fewer is better, and there's no need to fill
+four.
 
 If there are follow-ups, ask once with `AskUserQuestion` (multiSelect). Make each item
 an option, labelled with a number and a short name. Its description says what the item
-covers and the action you propose for it:
+covers, why it waits (the step-6 reason), and the action you propose for it:
 
 - **Linear issue** — you'll create it in the source issue's team/project, related to
   that issue.
 - **Spawn a session** (only when `mcp__seance__spawn_session` is available) — you'll
   start one with it on this machine, with a self-contained prompt (context, files, acceptance criteria),
   suggesting `/ship` if it's ship-shaped.
-- **Do it now** — something small you can finish in this session.
+
+When an item waits on a decision the user can make, state the decision and your
+recommendation in its description, so the user can answer it in the notes and have you
+do the item now.
 
 In the question text, say that the user can change an item's action in the notes, for
-example "spawn 1, issue 3". An item they don't select is left alone. Then act on the
-answer.
+example "spawn 1, issue 3" or "do 2 now". An item they don't select is left alone.
+`AskUserQuestion` rejects a question with one option, so give a lone item two: its
+proposed action, and the other action or "Leave it". Then act on the answer.
 
-If there are no follow-ups, say so and stop.
+If there are no follow-ups and nothing needs a say-so, say so and stop.
