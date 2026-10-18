@@ -6,11 +6,14 @@ Usage: cost.py <session-id> [project-dir]
 session-id: the UUID in any task-notification output path
   (/private/tmp/claude-<uid>/<project-slug>/<session-id>/tasks/<task>.output).
 project-dir: defaults to the transcript dir for the current working directory, under
-  $CLAUDE_CONFIG_DIR (or ~/.claude).
+  $CLAUDE_CONFIG_DIR (or ~/.claude); if the session isn't there, any project dir holding it.
+
+Unreadable transcript lines (partial or still being written) are skipped, noted on stderr.
 
 Prices are API list prices per million tokens, checked 2026-09-24. Cache writes are
 priced at the 1-hour TTL (2x input), which is what Claude Code uses.
 """
+import glob
 import json
 import os
 import sys
@@ -47,11 +50,29 @@ def parse_ts(s):
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
-def summarise(path):
+def load(path):
+    # A transcript still being written, or cut off mid-write, can hold partial lines
+    records, bad = [], []
+    with open(path) as f:
+        for n, line in enumerate(f, 1):
+            if not line.strip():
+                continue
+            try:
+                d = json.loads(line)
+            except ValueError:
+                bad.append(n)
+                continue
+            if isinstance(d, dict):
+                records.append(d)
+    if bad:
+        print(f"skipped {len(bad)} unreadable line(s) in {path}: {', '.join(map(str, bad))}", file=sys.stderr)
+    return records
+
+
+def summarise(records):
     messages = {}
     first = last = None
-    for line in open(path):
-        d = json.loads(line)
+    for d in records:
         ts = d.get("timestamp")
         if ts:
             first = first or ts
@@ -105,10 +126,16 @@ def main():
     project = sys.argv[2] if len(sys.argv) > 2 else os.path.join(
         config_dir, "projects", os.getcwd().replace("/", "-").replace(".", "-"))
     main_path = os.path.join(project, session + ".jsonl")
+    if not os.path.exists(main_path) and len(sys.argv) <= 2:
+        # Run from elsewhere than the session's start dir; session ids are unique across projects
+        found = glob.glob(os.path.join(glob.escape(config_dir), "projects", "*", glob.escape(session) + ".jsonl"))
+        if len(found) == 1:
+            main_path = found[0]
+            project = os.path.dirname(main_path)
     if not os.path.exists(main_path):
         sys.exit(f"transcript not found: {main_path}")
 
-    rows = [("Orchestrator", main_path)]
+    rows = [("Orchestrator", load(main_path))]
     sub_dir = os.path.join(project, session, "subagents")
     if os.path.isdir(sub_dir):
         subs = []
@@ -121,16 +148,17 @@ def main():
             if os.path.exists(meta):
                 md = json.load(open(meta))
                 label = f"{md.get('description', label)} ({md.get('agentType', '?')})"
-            first_line = open(path).readline()
-            subs.append((json.loads(first_line).get("timestamp", ""), label, path))
-        rows += [(label, path) for _, label, path in sorted(subs)]
+            records = load(path)
+            started = next((d["timestamp"] for d in records if d.get("timestamp")), "")
+            subs.append((started, label, records))
+        rows += [(label, records) for _, label, records in sorted(subs, key=lambda s: s[:2])]
 
     table = [("Part", "Model", "Calls", "Largest context", "Duration", "Approx. cost")]
     total = 0.0
     total_calls = 0
     unknown = False
-    for label, path in rows:
-        by_model, minutes = summarise(path)
+    for label, records in rows:
+        by_model, minutes = summarise(records)
         for model, a in by_model.items():
             c = cost(model, a)
             if c is None:
