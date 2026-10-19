@@ -627,6 +627,10 @@ and that doesn't need the user's say-so:
   without asking anyone for anything;
 - removing this run's own worktrees, branches and dev check state.
 
+The test: if you'd recommend "do it now" for an item and the only thing it waits on is
+the user's go-ahead, it isn't a follow-up. Do it here. Being outside what the task
+asked for doesn't make it wait; only step 6's *Defer* reasons do.
+
 List these under *What shipped*.
 
 Some actions on this run's own work need the user's say-so: merging a PR on a repo with
@@ -673,9 +677,10 @@ covers, why it waits (the step-6 reason), and the action you propose for it:
   start one with it on this machine, with a self-contained prompt (context, files, acceptance criteria),
   suggesting `/ship` if it's ship-shaped.
 
-When an item waits on a decision the user can make, state the decision and your
-recommendation in its description, so the user can answer it in the notes and have you
-do the item now.
+Never propose "do it now" as an item's action. An item you'd do now belongs under
+*Finish first*. The one exception: when an item waits on a decision the user can make,
+state the decision and your recommendation in its description, so the user can answer
+it in the notes and have you do the item now.
 
 In the question text, say that the user can change an item's action in the notes, for
 example "spawn 1, issue 3" or "do 2 now". An item they don't select is left alone.
