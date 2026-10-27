@@ -1,13 +1,13 @@
 #!/bin/sh
 # Outputs the tmux status-right string, including tmux colour format tags.
-# Usage: .tmux-status-right.sh <pane_pid> <pane_current_path> [pane_path]
+# Usage: .tmux-status-right.sh <pane_tty> <pane_current_path> [pane_path]
 #
 # pane_path is tmux's record of the last OSC 7 report from whatever runs in the
 # pane. tmux itself runs locally, so the only way it can know where an SSH'd
 # pane really is, is if the remote shell says so — .zshrc_dotfile emits OSC 7 on
 # every prompt, which covers any host sharing these dotfiles.
 
-pane_pid="$1"
+pane_tty="$1"
 pane_current_path="$2"
 pane_path="$3"
 
@@ -25,9 +25,6 @@ fi
 _resolve_local_names 2>/dev/null
 local_host="${_local_names%% *}"
 : "${local_host:=$(hostname -s)}"
-
-# SSH detection shared with the window-tab colouring in .tmux.conf.
-_is_ssh="$("$HOME/.tmux-pane-ssh.sh" "$pane_pid" "$pane_path")"
 
 # Remote host + cwd, when the pane's OSC 7 report names a host that isn't this
 # one. A missing hostname (file:///path) means the reporter is local.
@@ -66,7 +63,10 @@ if [ -n "$remote_host" ]; then
 else
   host="$local_host"
   path="$(printf '%s' "$pane_current_path" | sed "s|$HOME|~|")"
-  # Cyan still flags an SSH'd pane whose remote never reported a path.
+  # Cyan still flags an SSH'd pane whose remote never reported a path. Asked
+  # only here: a remote report already settles the colour. Detection is shared
+  # with the window-tab colouring in .tmux.conf.
+  _is_ssh="$("$HOME/.tmux-pane-ssh.sh" "$pane_tty" "$pane_path")"
   [ "$_is_ssh" = 1 ] && _host_color=81 || _host_color=205  # pink — local
 fi
 

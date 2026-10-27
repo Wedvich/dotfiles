@@ -71,7 +71,7 @@ _apply() {
 # share pane_bottom and any one of them may hold the nested tmux. Records are
 # newline-separated with pane_path last: it can be empty, and `read` would
 # otherwise shift the fields.
-tmux list-panes -a -F '#{window_id} #{pane_bottom} #{pane_id} #{pane_height} #{pane_pid} #{pane-border-status} #{pane_path}' \
+tmux list-panes -a -F '#{window_id} #{pane_bottom} #{pane_id} #{pane_height} #{pane_tty} #{pane-border-status} #{pane_path}' \
   2>/dev/null | {
   cur_win=''
   cur_status=''
@@ -81,9 +81,9 @@ tmux list-panes -a -F '#{window_id} #{pane_bottom} #{pane_id} #{pane_height} #{p
   _flush() {
     [ -n "$cur_win" ] || return 0
     _want=off
-    while read -r c_pane c_height c_pid c_path; do
+    while read -r c_pane c_height c_tty c_path; do
       [ -n "$c_pane" ] || continue
-      if [ "$("$HOME/.tmux-pane-ssh.sh" "$c_pid" "$c_path")" = 1 ] &&
+      if [ "$("$HOME/.tmux-pane-ssh.sh" "$c_tty" "$c_path")" = 1 ] &&
         _has_status_line "$c_pane" "$c_height"; then
         _want=bottom
         break
@@ -94,7 +94,7 @@ EOF_CANDIDATES
     _apply "$cur_win" "$_want" "$cur_status"
   }
 
-  while read -r win bottom pane height pid status path; do
+  while read -r win bottom pane height tty status path; do
     if [ "$win" != "$cur_win" ]; then
       _flush
       cur_win="$win"
@@ -110,7 +110,7 @@ EOF_CANDIDATES
     fi
     if [ "$bottom" -eq "$best_bottom" ]; then
       candidates="$candidates
-$pane $height $pid $path"
+$pane $height $tty $path"
     fi
   done
   _flush
