@@ -18,6 +18,43 @@
 # SSH check there is nothing to gate the rule on, so draw nothing.
 [ -x "$HOME/.tmux-pane-ssh.sh" ] || exit 0
 
+# Fired per client per status redraw and from hooks, and a scan asks about every
+# bottom pane, so: one scan at a time, starting at most every 2s. Unbounded,
+# scans outlived the status-interval and stacked up by the dozen. A skipped
+# trigger loses at most a status poll's wait. Socket in a directory that isn't
+# ours alone (-S into /tmp, where others could plant files at the state path;
+# sticky catches /tmp even for root), or no lock helper (a pull that outran
+# setup.sh): run unthrottled rather than not at all. tmux's default socket dir
+# is ours, 0700.
+_sock="${TMUX%%,*}"
+# -O/-k aren't POSIX but dash, bash and busybox have them; a test without fails safe.
+# shellcheck disable=SC3065,SC3067
+if [ -n "$TMUX" ] && [ -O "${_sock%/*}" ] && [ ! -k "${_sock%/*}" ] &&
+  [ -r "$HOME/.tmux-lock.sh" ]; then
+  . "$HOME/.tmux-lock.sh"
+  _state="$_sock.nested-frame"
+  _now="$(date +%s)"
+  _read_last() {
+    _last=0
+    read -r _last 2>/dev/null <"$_state.last"
+    case "$_last" in
+      '' | *[!0-9]*) _last=0;;
+    esac
+    # Clock stepped back: a future stamp would hold off every scan until it passes.
+    [ "$_last" -le "$_now" ] || _last=0
+  }
+  _read_last
+  [ $((_now - _last)) -ge 2 ] || exit 0
+  # A scan finishes in seconds; the backstop is for a reused PID.
+  _lock_take "$_state.held" "$_now" 120 || exit 0
+  trap '_lock_drop "$_state.held" "$_now"' EXIT
+  trap 'exit 1' HUP INT TERM
+  # Check again under the lock: a whole scan may have run since our first read.
+  _read_last
+  [ $((_now - _last)) -ge 2 ] || exit 0
+  printf '%s\n' "$_now" >"$_state.last"
+fi
+
 _frame_fg="$(tmux show -gqv '@nested-frame-fg' 2>/dev/null)"
 : "${_frame_fg:=238}"
 

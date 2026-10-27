@@ -76,6 +76,7 @@ link_dotfiles() {
     .agent-bridge.sh       "$HOME/.agent-bridge.sh"
     .editorconfig          "$HOME/.editorconfig"
     .tmux-local-host.sh    "$HOME/.tmux-local-host.sh"
+    .tmux-lock.sh          "$HOME/.tmux-lock.sh"
     .tmux-nested-frame.sh  "$HOME/.tmux-nested-frame.sh"
     .tmux-pane-ssh.sh      "$HOME/.tmux-pane-ssh.sh"
     .tmux-status-right.sh  "$HOME/.tmux-status-right.sh"
