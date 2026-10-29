@@ -38,8 +38,9 @@ status report, with no tool call, ends the whole run.
   keeps moving.
 - A background job you started (CI watch, a subagent) isn't finished
   until its output is back. Wait for it, then continue.
-- If the conversation gets compacted, re-read the to-do list, `plan.md` and the review
-  files in the working directory before continuing.
+- If the conversation gets compacted, re-read the to-do list, `plan.md`,
+  `review-plan.md` and `review-consolidated*.md` in the working directory before
+  continuing. Read `review-code*.md` only where step 6 has you read it.
 - Your own context is the most expensive one in the run, because it lives longest.
   Leave bulk reading (full diffs, whole files, long logs) to subagents and keep what
   you read to what a decision needs.
@@ -76,10 +77,10 @@ this skill takes on.
 
 - `ship-plan-{low,medium,high}`, the planner, writes `plan.md` itself and returns
   three lines, so the plan reaches your context once, when you read it in step 4.
-- `ship-review-{low,medium,high}`, the plan and code reviewers, are read-only and
-  return their findings as their final message. Under a bypass session Claude Code
-  ignores their plan mode, so the read-only rule lives in the agent, with Edit and
-  Write removed.
+- `ship-review-{low,medium,high}`, the plan and code reviewers, are read-only. The
+  plan reviewer returns its findings; the code reviewer writes them to `review-code.md`
+  and returns a one-line index per finding. Under a bypass session Claude Code ignores
+  their plan mode, so the read-only rule lives in the agent, with Edit removed.
 - `ship-build-{low,medium,high}` implement and fix, and plan and build on the direct
   path.
 
@@ -130,7 +131,7 @@ format). Every dispatch prompt supplies the rest:
   the block early, and the agents accept only a matching pair.
 - **For the code reviewer**, you may name the areas that deserve the closest look.
   Never set a severity or confidence bar ("only serious issues", "be conservative"):
-  it reports for coverage and filtering is your job. The plan reviewer is the
+  it reports for coverage and filtering comes after. The plan reviewer is the
   exception: step 4 gives it a fixed scope and a cap.
 
 ### When a subagent comes back
@@ -451,7 +452,8 @@ the stat raises a question.
 `<workdir>/diff.patch`, with a `### <repo>` header per section. Don't read it into
 your own context: the reviewer will.
 
-Dispatch a code reviewer with the paths to `diff.patch` and `plan.md`, to review for
+Dispatch a code reviewer with the paths to `diff.patch` and `plan.md`, and the path for
+`review-code.md` (`review-code-2.md` on a re-review), to review for
 correctness, edge cases, error paths, security at system boundaries, test quality,
 contract consistency across repos, and adherence to `plan.md`. Where a plan step came
 from a plan-review finding (`review-plan.md` lists them), ask it to look hardest
@@ -463,35 +465,55 @@ status line. A UI-only review also gets the design reference (the issue's design
 spec, or the prototype link) in `<source_material>` tags, since a diff alone can't
 show whether the page matches the design.
 
-Consolidate. This is where the filtering happens:
+Consolidate. This is where the filtering happens. The reviewer returns an index; the
+findings themselves are in `review-code.md`. If it says the Write was refused (plan mode
+outside a bypass session), its final message holds the findings: write them to
+`review-code.md` yourself and go on. Add the implementer's *Out of scope* notes as
+further findings, and count them toward the threshold below.
 
-1. Check each finding against the code yourself, and drop what doesn't hold. The
-   implementer's *Out of scope* notes go through the same sort.
-2. Sort what holds:
-   - **Fix** by default. That covers wrong behaviour, test failures, security gaps and
-     breaches of `plan.md` or a CLAUDE.md rule, and also edge cases, error paths,
-     missing or lost tests, a11y, stale comments and docs, and small existing defects
-     in the files and flows the diff touches. Being low severity, rare, cosmetic or
-     pre-existing is not a reason to defer: the fix is cheapest now, while the context
-     is loaded, and a deferred finding costs the user a decision and a later session.
-   - **Defer** only when the fix needs one of these: a product, design or copy decision
-     that neither the task nor `CLAUDE.md` settles; a repo or service outside this run
-     that has its own rollout; work big enough to need its own plan; or an area from the
-     *high* list (step 1) that this run's plan didn't cover. The same bug in a sibling
-     flow the diff doesn't touch is deferred too. Note which reason applies. When torn,
-     fix.
-   - **Reject** pure style or naming preferences the repo's linter doesn't enforce.
-3. Make small fixes yourself. For larger ones, dispatch a **fresh** implementer
-   (`ship-build-L`, `sonnet`) with a review-findings brief: the worktree and branch,
-   one finding per step with file and line, and the verification commands. Don't
-   resume the original implementer (see *When a subagent comes back*). Then re-run
-   verification, choosing tests the way the `ship-build` agents do: every suite
-   that depends on the change, in every kind the repo has, not the directory you edited.
-4. Re-review only if the fixes were substantial, and at most one more round.
+- **Three findings or fewer:** read `review-code.md`, check each finding against the
+  code yourself, sort the ones that hold by the rules below, and make small fixes
+  yourself. For larger ones, dispatch a fresh fixer (`ship-build-L`, `sonnet`) with a
+  review-findings brief that names the findings to fix (they're already checked and
+  sorted), the worktrees and branches, and the verification commands.
+- **More than three:** don't read the file. Dispatch a **fresh** fixer (`ship-build-L`,
+  `sonnet`) with a review-findings brief: the worktrees and branches, the paths to
+  `review-code.md`, `plan.md` and `diff.patch`, the *Out of scope* notes, the rules below
+  pasted in verbatim with step 1's *high* list written out where they cite it, the
+  verification commands, and the path for `review-consolidated.md`
+  (`review-consolidated-2.md` on a re-review, so round one's entries survive). It checks each
+  finding against the code, fixes what holds and records every finding. Checking a
+  finding means reading the code around it, and that reading belongs in a context that
+  ends with the fix, not in yours. Then read only the deferred and rejected entries in
+  `review-consolidated.md`. A rejected high-severity finding is the one call to check
+  against the code yourself; if it holds, it goes back to a fixer.
 
-Keep the consolidated list (fixed / deferred / rejected, each with a reason; for a
-deferral, the reason from the list above) in `review-consolidated.md`, for the PR
-descriptions and step 10.
+Don't resume the original implementer for fixes (see *When a subagent comes back*).
+After fixes, re-run verification, choosing tests the way the `ship-build` agents do:
+every suite that depends on the change, in every kind the repo has, not the directory
+you edited. Re-review only if the fixes were substantial, and at most one more round.
+
+The rules:
+
+- **Fix** by default. That covers wrong behaviour, test failures, security gaps and
+  breaches of `plan.md` or a CLAUDE.md rule, and also edge cases, error paths,
+  missing or lost tests, a11y, stale comments and docs, and small existing defects
+  in the files and flows the diff touches. Being low severity, rare, cosmetic or
+  pre-existing is not a reason to defer: the fix is cheapest now, while the context
+  is loaded, and a deferred finding costs the user a decision and a later session.
+- **Defer** only when the fix needs one of these: a product, design or copy decision
+  that neither the task nor `CLAUDE.md` settles; a repo or service outside this run
+  that has its own rollout; work big enough to need its own plan; or an area from the
+  *high* list (step 1) that this run's plan didn't cover. The same bug in a sibling
+  flow the diff doesn't touch is deferred too. Note which reason applies. When torn,
+  fix.
+- **Reject** what the code refutes, and pure style or naming preferences the repo's
+  linter doesn't enforce.
+
+`review-consolidated.md` (plus `review-consolidated-2.md` after a re-review) holds every
+finding as fixed, deferred or rejected, each with a reason (for a deferral, the reason
+from the list above), for the PR descriptions and step 10. When you consolidated
+yourself, write it yourself.
 
 ## 7. Open the PRs
 
