@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Take a task (usually a Linear issue) from assessment to merged PR — sizes it, plans, reviews cross-boundary plans, implements via cheaper subagents, reviews the diff, opens auto-merge PRs, fixes CI until merged, verifies on dev when needed, then offers follow-ups.
+description: Take a task (usually a Linear issue) from assessment to merged PR — sizes it, plans, reviews cross-boundary plans, implements via cheaper subagents, reviews the diff, opens auto-merge PRs, fixes CI until merged, verifies on dev when needed, then routes follow-ups itself.
 argument-hint: "[low|medium|high] <task description, Linear issue key or URL>"
 disable-model-invocation: true
 model: opus
@@ -51,7 +51,7 @@ Stop and wait for the user only when:
 - a merge would happen on a repo without a merge gate that also requires a PR (step 7)
 - CI is green and a PR is waiting only on a human approval (step 8)
 - the CI fix limit is reached (step 8)
-- you reach the follow-up choice (step 10)
+- a follow-up waits on a decision only the user can make, or an action needs their say-so (step 10)
 - a forced level would need raising (see *Forced level*)
 - something is blocked by a permission or protection you shouldn't route around
 
@@ -513,17 +513,29 @@ The rules:
   in the files and flows the diff touches. Being low severity, rare, cosmetic or
   pre-existing is not a reason to defer: the fix is cheapest now, while the context
   is loaded, and a deferred finding costs the user a decision and a later session.
-- **Defer** only when the fix needs one of these: a product, design or copy decision
-  that neither the task nor `CLAUDE.md` settles; a repo or service outside this run
-  that has its own rollout; work big enough to need its own plan; or an area from the
-  *high* list (step 1) that this run's plan didn't cover. The same bug in a sibling
-  flow the diff doesn't touch is deferred too. Note which reason applies. When torn,
-  fix.
+  Two more kinds are fixes, not deferrals:
+  - A copy, product or design call you have a recommendation for, when the result is
+    easy to change later (a label, a limit, where a button shows, a duplicate to
+    remove). Make the call and record it in the PR description as *Decided: X,
+    because Y*; the user overrides it in review.
+  - A consequence of this change in another repo: docs, labels, field descriptions,
+    prompts or fixtures that describe what changed. It gets its own PR in this run.
+- **Defer** only when the fix needs one of these: a decision that neither the task nor
+  `CLAUDE.md` settles and that you shouldn't take alone (money figures or what they
+  mean, privacy, legal or compliance policy, or a product call you have no
+  recommendation for); a behaviour change in a service outside this run with its own
+  rollout; work big enough to need its own plan; or an area from the *high* list
+  (step 1) that this run's plan didn't cover. The same bug in a sibling flow the diff
+  doesn't touch is deferred too. Note which reason applies. When torn, fix.
+- **Drop** an existing problem unrelated to the change that you or a reviewer only
+  noticed in passing, unless it's a security gap, data loss or a bug users can see
+  (defer those). Dependency advisories are dropped too: Renovate owns them. Dropped
+  items are listed in one line each in the summary, nothing more.
 - **Reject** what the code refutes, and pure style or naming preferences the repo's
   linter doesn't enforce.
 
 `review-consolidated.md` (plus `review-consolidated-2.md` after a re-review) holds every
-finding as fixed, deferred or rejected, each with a reason (for a deferral, the reason
+finding as fixed, deferred, dropped or rejected, each with a reason (for a deferral, the reason
 from the list above), for the PR descriptions and step 10. When you consolidated
 yourself, write it yourself.
 
@@ -687,13 +699,14 @@ dev, with the reason it was left.
 
 ### Finish first
 
-A follow-up is work that has to wait: for a decision, another repo's rollout, or a
-plan of its own. Before the summary, do whatever you'd otherwise offer as "do it now"
-and that doesn't need the user's say-so:
+A follow-up is work that has to wait: for a decision you shouldn't take alone, another
+service's rollout, or a plan of its own. Before the summary, do whatever you'd otherwise
+offer as "do it now" and that doesn't need the user's say-so:
 
-- a fix that passes step 6's *Fix* rule, including one the dev check turned up; once
-  the PRs have merged, it goes through a new branch and PR (step 9, item 4);
-- a docs touch-up in any repo that describes what changed;
+- a fix that passes step 6's *Fix* rule, including one the dev check turned up and a
+  call you made under it; once the PRs have merged, it goes through a new branch and
+  PR (step 9, item 4);
+- a docs touch-up or another consequence of this change, in any repo;
 - a Linear comment on the source issue or a related issue that records a finding,
   without asking anyone for anything;
 - removing this run's own worktrees, branches and dev check state.
@@ -706,16 +719,49 @@ List these under *What shipped*.
 
 Some actions on this run's own work need the user's say-so: merging a PR on a repo with
 no merge gate, a prod deploy or a prod data change, deleting data the run didn't
-create, or a comment that asks a named person for a decision. Put these in a question
-of their own, in the same `AskUserQuestion` call as the follow-ups, with one option per
-action plus "Not now". Keep them out of the follow-up list.
+create, or a message or comment that asks a named person for a decision. Put these in
+a question of their own, in the same `AskUserQuestion` call as any follow-up question,
+with one option per action plus "Not now".
+
+### Follow-ups
+
+Gather the follow-up items: everything deferred under step 6's rule (from the reviews,
+the implementer's notes, the dev check or your own reading), scope the task explicitly
+left out, and open questions still unresolved. Group items that share a cause, a file
+or an obvious single fix into one. Then route each one yourself: whether something is
+worth tracking is your call, not the user's. A run that ends with no follow-up
+question is the norm.
+
+- **Needs its own plan, and the task's intent covers it** (the source issue would want
+  it done): spawn a session with `mcp__seance__spawn_session` without asking, with a
+  self-contained prompt (context, files, acceptance criteria), suggesting `/ship` if
+  it's ship-shaped. Without seance, a Linear issue.
+- **Needs its own plan, outside the task's intent:** a Linear issue only if it's a
+  security gap, data loss or a bug users can see; otherwise list it with the dropped
+  items.
+- **A flaky test:** spawn a session running `/fix-flaky-test` with the test and the run
+  it failed in.
+- **Blocked on something this run can't do** (another person's approval, another
+  service's rollout): a Linear issue in the source issue's team/project, related to
+  that issue.
+- **Waits on a decision that belongs to someone else** (a product owner, the prompt
+  owner): draft a short message to them with the question and your recommendation,
+  and offer sending it as a say-so action. Never send it without the user's go-ahead.
+- **Waits on a decision only the user can make, and it matters:** the one kind that
+  becomes a follow-up question. Ask it with `AskUserQuestion`: the decision, your
+  recommendation first, and what you'll do on each answer. Then act on the answer.
+
+`AskUserQuestion` rejects a question with one option, so give a lone decision at least
+two answers.
 
 ### Summary
 
 End the run with a summary. It always has these parts, in this order:
 
-1. **What shipped:** the PR links, review findings fixed vs deferred vs rejected, what
-   you finished in *Finish first*, and the dev check result.
+1. **What shipped:** the PR links, review findings fixed vs deferred vs dropped vs
+   rejected, what you finished in *Finish first*, the calls you made (*Decided: X*),
+   what you spawned or filed under *Follow-ups*, and the dev check result. Dropped
+   items get one line each under *Noticed, not acted on*.
 2. **Assessment:** the Assessment block from `progress.md`, updated with the level
    actually used and any escalation.
 3. **Cost:** run the cost script and paste its table as-is.
@@ -725,37 +771,7 @@ End the run with a summary. It always has these parts, in this order:
    The session id is the UUID directory in any task-notification output path
    (`…/<project-slug>/<session-id>/tasks/<task>.output`). Run it from the directory
    this session started in. The table covers everything up to this point, not the
-   follow-up actions after it.
+   actions after it.
 
-### Follow-ups
-
-Gather the follow-up items: everything deferred under step 6's rule (from the reviews,
-the implementer's notes, the dev check or your own reading), scope the task explicitly
-left out, and open questions still unresolved. Every deferred finding counts as an item; the
-user decides whether it's worth tracking, not you. Consolidate before asking: group
-items that share a cause, a file or an obvious single fix into one item (e.g. "3
-deferred review findings in the guard spec → one Linear issue"). At most four items,
-since that's what one question holds; fewer is better, and there's no need to fill
-four.
-
-If there are follow-ups, ask once with `AskUserQuestion` (multiSelect). Make each item
-an option, labelled with a number and a short name. Its description says what the item
-covers, why it waits (the step-6 reason), and the action you propose for it:
-
-- **Linear issue** — you'll create it in the source issue's team/project, related to
-  that issue.
-- **Spawn a session** (only when `mcp__seance__spawn_session` is available) — you'll
-  start one with it on this machine, with a self-contained prompt (context, files, acceptance criteria),
-  suggesting `/ship` if it's ship-shaped.
-
-Never propose "do it now" as an item's action. An item you'd do now belongs under
-*Finish first*. The one exception: when an item waits on a decision the user can make,
-state the decision and your recommendation in its description, so the user can answer
-it in the notes and have you do the item now.
-
-In the question text, say that the user can change an item's action in the notes, for
-example "spawn 1, issue 3" or "do 2 now". An item they don't select is left alone.
-`AskUserQuestion` rejects a question with one option, so give a lone item two: its
-proposed action, and the other action or "Leave it". Then act on the answer.
-
-If there are no follow-ups and nothing needs a say-so, say so and stop.
+After the summary, ask the follow-up question and the say-so question if there are any,
+in one `AskUserQuestion` call. If there are none, say so and stop.
