@@ -188,13 +188,17 @@ Its final message is a report, not proof the work is done.
    Stop once you can pick `L` confidently; the planner does the deep read. Write down
    the facts you established (types, data shapes, where things live) so you can hand
    them to the planner instead of it rediscovering them.
+   A repo whose CLAUDE.md says it deploys nothing (a workspace hub, a docs or
+   coordination repo) rides along: its changes, code included, never count as a repo
+   when picking `L`, the path or plan review. They are still planned, built and
+   reviewed.
 4. Pick `L`, unless the user forced it (see *Forced level* below). Default to the
    lowest level that fits; when torn, pick the lower one, because a failing subagent
    is redispatched one level up anyway.
    - **low** — local change, one area, obvious approach, well covered by tests or
      trivially verifiable. Most doc, config, copy and small bug fixes.
-   - **medium** — several files or repos with one non-trivial design choice, or a
-     contract change between services that you control on both sides. Includes
+   - **medium** — several files or deployable repos with one non-trivial design
+     choice, or a contract change between services that you control on both sides. Includes
      changing how a calculation or figure shown to users is computed, when the rule
      is specified exactly and testable. Collecting, moving or displaying an input to
      one doesn't count: in many apps almost everything feeds money somewhere.
@@ -400,8 +404,8 @@ definition, raise `L` (unless forced) or reclassify, and say so.
 **Run the plan review only when at least one trigger holds** for the plan as written:
 
 - `L` is high;
-- the steps change two or more deployable repos or services (a docs or spec change
-  in a workspace hub alongside one repo doesn't count);
+- the steps change two or more deployable repos or services (a repo that deploys
+  nothing doesn't count; see step 1, item 3);
 - *Outside the diff* names a rollout order, or a consumer that the steps change
   behaviour for;
 - money figures shown or told to users change how they are computed or worded;
