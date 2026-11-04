@@ -343,7 +343,8 @@ Observable behaviour, not intentions. Mark any criterion that can only be checke
 deployed environment as "dev check".
 
 ## Non-goals
-What not to touch.
+What not to touch: only what the task or the user excluded, and different problems.
+Anything the task's intent covers is a step, even when the issue text doesn't name it.
 
 ## Steps
 Ordered, grouped by repo. Each names the repo, exact files/symbols, the change, a
@@ -527,6 +528,8 @@ The rules:
   rollout; work big enough to need its own plan; or an area from the *high* list
   (step 1) that this run's plan didn't cover. The same bug in a sibling flow the diff
   doesn't touch is deferred too. Note which reason applies. When torn, fix.
+  Route a deferral as soon as you make it, by step 10's *Follow-ups* rules, rather
+  than holding it to the end: a session spawned now runs alongside this one.
 - **Drop** an existing problem unrelated to the change that you or a reviewer only
   noticed in passing, unless it's a security gap, data loss or a bug users can see
   (defer those). Dependency advisories are dropped too: Renovate owns them. Dropped
@@ -725,12 +728,14 @@ with one option per action plus "Not now".
 
 ### Follow-ups
 
-Gather the follow-up items: everything deferred under step 6's rule (from the reviews,
-the implementer's notes, the dev check or your own reading), scope the task explicitly
-left out, and open questions still unresolved. Group items that share a cause, a file
-or an obvious single fix into one. Then route each one yourself: whether something is
-worth tracking is your call, not the user's. A run that ends with no follow-up
-question is the norm.
+Most follow-ups are found mid-run: in planning, the implementer's notes, the code
+review or the dev check. Route each one when it's found, by the rules below, and
+don't save it for here. The exception is a question for the user that doesn't block
+the next step: it waits until the end, so the run doesn't stall on it. What reaches this section is the rest: anything not yet
+routed, open questions still unresolved, and the list of what was routed earlier.
+Group items that share a cause, a file or an obvious single fix into one. Whether
+something is worth tracking is your call, not the user's. A run that ends with no
+follow-up question is the norm.
 
 - **Needs its own plan, and the task's intent covers it** (the source issue would want
   it done): spawn a session with `mcp__seance__spawn_session` without asking, with a
