@@ -48,7 +48,7 @@ status report, with no tool call, ends the whole run.
 Stop and wait for the user only when:
 
 - an open question would change the outcome, at any step (usually 1, 3 or 4)
-- a merge would happen on a repo without a merge gate (step 7)
+- a merge would happen on a repo without a merge gate that also requires a PR (step 7)
 - CI is green and a PR is waiting only on a human approval (step 8)
 - the CI fix limit is reached (step 8)
 - you reach the follow-up choice (step 10)
@@ -540,8 +540,12 @@ For each repo:
    - Azure DevOps: count blocking policies on the target branch with
      `az repos policy list` (the workspace docs may name the exact query). If non-zero, `az repos pr create --auto-complete true --squash true
      --delete-source-branch true`.
-   - **No gate:** create the PR without auto-merge, watch CI (step 8), and when it's
-     green ask the user whether to merge.
+   - **No gate:** create the PR without auto-merge and watch CI (step 8). The same
+     rules response says whether a PR is required at all:
+     - **No `pull_request` rule either:** direct pushes to `main` are allowed, so the PR
+       is a courtesy and asking protects nothing. When CI is green, merge it
+       (`gh pr merge --squash --delete-branch`) without asking.
+     - **Otherwise:** when CI is green, ask the user whether to merge.
    - If the gate requires zero approvals, say in your update that it will merge with no
      human review once green.
 
