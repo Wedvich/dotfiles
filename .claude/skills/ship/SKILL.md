@@ -555,24 +555,30 @@ For each repo:
    Check all repos up front (this can run while the planner works).
    - GitHub: read the rulesets (`gh api repos/<owner>/<repo>/rules/branches/main`) and
      classic branch protection (`gh api repos/<owner>/<repo>/branches/main/protection`;
-     a 404 means none). A `required_status_checks` rule in the first, or a
-     `required_status_checks` entry in the second, is a gate. If so,
+     a 404 means none; a 403 means you can't read it, so treat the repo as having no
+     gate and ask before merging). A `required_status_checks` rule in the first, or a
+     `required_status_checks` entry naming at least one context or check in the second,
+     is a gate; an empty list blocks nothing. If so,
      `gh pr create --assignee @me`, then `gh pr merge --auto --squash --delete-branch`.
    - **Review required, no required check:** a `pull_request` rule with
      `required_approving_review_count` ≥ 1 (or classic protection's
      `required_pull_request_reviews` with the same). `gh pr create --assignee @me
-     --reviewer <owners>`, the owners from the repo's `.github/CODEOWNERS` (a user or
-     `org/team`, without the `@`). No CODEOWNERS: request no one, say so, and step 8
-     watches. Don't arm auto-merge: with no CI gate an approval would merge a red PR,
-     and such a repo may not allow auto-merge at all.
+     --reviewer <owners>`, the owners of the changed paths from the repo's CODEOWNERS
+     (`.github/`, root or `docs/`; a user or `org/team`, without the `@`). Leave out
+     yourself (GitHub refuses a review request from the PR's author) and email entries.
+     No owner left: request no one, say so, and step 8 watches. Don't arm auto-merge:
+     with no CI gate an approval would merge a red PR, and such a repo may not allow
+     auto-merge at all.
    - Azure DevOps: count blocking policies on the target branch with
      `az repos policy list` (the workspace docs may name the exact query). If non-zero, `az repos pr create --auto-complete true --squash true
      --delete-source-branch true`.
-   - **No gate:** create the PR without auto-merge and watch CI (step 8). The same
-     rules response says whether a PR is required at all:
-     - **No `pull_request` rule either:** direct pushes to `main` are allowed, so the PR
-       is a courtesy and asking protects nothing. When CI is green, merge it
-       (`gh pr merge --squash --delete-branch`) without asking.
+   - **No gate** (no required check, no required review): create the PR without
+     auto-merge and watch CI (step 8). The same two responses say whether a PR is
+     required at all:
+     - **No `pull_request` rule and no classic `required_pull_request_reviews`:**
+       direct pushes to `main` are allowed, so the PR is a courtesy and asking
+       protects nothing. When CI is green, merge it (`gh pr merge --squash
+       --delete-branch`) without asking.
      - **Otherwise:** when CI is green, ask the user whether to merge.
    - If the gate requires zero approvals, say in your update that it will merge with no
      human review once green.
@@ -606,14 +612,16 @@ State and assignee were set in step 3; re-set In Progress only if something move
 ### Hand off, or watch
 
 A session kept alive only to watch CI and merge burns hours for nothing. Séance can
-hold the PR instead: `hand_off_task` closes this session when the turn ends, and the
-task waits for the merge as `awaiting-merge`, with its worktree kept for a continuation.
+hold the PR instead: `mcp__seance__hand_off_task` closes this session when the turn
+ends, and the task waits for the merge as `awaiting-merge`, with its worktree kept for
+a continuation.
 
 **Hand off only when all of these hold:**
 
-- The run is a Séance task: the `hand_off_task` tool is available, and
+- The run is a Séance task: the `mcp__seance__hand_off_task` tool is available (load
+  it with ToolSearch if it's listed as deferred), and
   `tmux show-options -pqv -t "$TMUX_PANE" @seance-task` prints a task id.
-- The run opened exactly one PR.
+- The run opened exactly one PR, on GitHub.
 - That PR targets main (not stacked).
 - Step 7 either armed auto-merge behind a required check, or requested a reviewer on a
   review-required repo.
@@ -623,28 +631,32 @@ task waits for the merge as `awaiting-merge`, with its worktree kept for a conti
 1. Confirm with one `gh pr view <n> -R <owner>/<repo> --json
    state,autoMergeRequest,reviewRequests`: OPEN, plus auto-merge armed or a reviewer
    requested. Anything else: watch.
-2. If `plan.md`'s *Dev check* isn't "none", queue step 9 now as a follow-up task:
+2. If `plan.md`'s *Dev check* isn't "none", or the PR covers only part of a Linear
+   issue, queue the post-merge work now as a follow-up task:
    `mcp__seance__spawn_session` on the same repo with
    `after: [{task: <own task id>, when: "merged"}]`. The new session has none of this
    context, so its prompt stands alone:
    - the PR URL;
-   - `plan.md`'s *Dev check* section, verbatim;
-   - the test account and how to get its token (step 9, item 2);
-   - "Wait for main's dev deploy job to finish, then dispatch ship-check as /ship step
-     9 says. Fix a failure through a new branch and PR."
+   - for a dev check: `plan.md`'s *Dev check* section, verbatim; the test account and
+     how to get its token (step 9, item 2); and "Read step 9 of
+     `~/.claude/skills/ship/SKILL.md`, wait for main's dev deploy job to finish, then
+     dispatch ship-check as that step says. Fix a failure through a new branch and PR.";
+   - for a partial issue: its key, and "If the merge moved it to Done, set it back to
+     In Progress."
 3. Skip removing the worktree and branch, here and in step 10. They stay for a
    continuation; Séance's reap removes them after the merge.
 4. Go to step 10 now. The summary says the PR was handed off, what will merge it
-   (auto-merge, or the named reviewer), the dev check follow-up's task id if one was
-   queued, and that a red check or a conflict is now continued from Séance, not watched
-   here. Any say-so question goes through `AskUserQuestion` before the hand-off.
-5. Make `hand_off_task` the run's last tool call. On ok, end the turn with nothing
-   more: that is the run's end, not a stall. On a refusal, watch as below, then remove
-   the worktree and branch and end with a corrected summary; a dev check already
-   queued stays queued.
+   (auto-merge, or someone merging it once the named reviewer approves), the
+   follow-up's task id if one was queued, and that a red check or a conflict is now
+   continued from Séance, not watched here. Any say-so question goes through
+   `AskUserQuestion` before the hand-off.
+5. Make `mcp__seance__hand_off_task` the run's last tool call. On ok, end the turn
+   with nothing more: that is the run's end, not a stall. On a refusal, watch as below,
+   then remove the worktree and branch and end with a corrected summary; a follow-up
+   already queued stays queued.
 
-**Otherwise** (no gate, several PRs, stacked, not a Séance task, or the tool missing or
-refused): watch.
+**Otherwise** (no gate, several PRs, stacked, Azure DevOps, not a Séance task, or the
+tool missing or refused): watch.
 
 ### Watch
 
@@ -836,4 +848,5 @@ End the run with a summary. It always has these parts, in this order:
 
 After the summary, ask the follow-up question and the say-so question if there are any,
 in one `AskUserQuestion` call. If there are none, say so and stop. On a handed-off run,
-act on any answers, then end with `hand_off_task` (step 8, item 5) instead of stopping.
+act on any answers, then end with `mcp__seance__hand_off_task` (step 8, item 5)
+instead of stopping.
