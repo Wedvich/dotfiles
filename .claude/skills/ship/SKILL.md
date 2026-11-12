@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Take a task (usually a Linear issue) from assessment to merged PR — sizes it, plans, reviews cross-boundary plans, implements via cheaper subagents, reviews the diff, opens auto-merge PRs, fixes CI until merged, verifies on dev when needed, then routes follow-ups itself.
-argument-hint: "[low|medium|high] [fast] [steer|checkpoint|auto] <task description, Linear issue key or URL>"
+argument-hint: "[low|medium|high] [direct] [steer|checkpoint|auto] <task description, Linear issue key or URL>"
 disable-model-invocation: true
 model: opus
 effort: medium
@@ -17,8 +17,9 @@ the first word that isn't one starts the task.
   and holds for the whole run; see *Forced level* under step 1 for what changes.
   `xhigh` or `max` means `high` (there are no higher agents); say so in the first
   status line.
-- `fast` forces the direct path (step 1, item 7), even where you would pick the split
-  path. See *Direct path* after step 2.
+- `direct` forces the direct path (step 1, item 7), even where you would pick the split
+  path, and its builder doesn't stop for plan-review triggers. See *Direct path* after
+  step 2.
 - `steer`, `checkpoint` or `auto` sets the autonomy level (see *Autonomy* below).
 
 You often run from a workspace directory (a hub repo or a parent of several checkouts),
@@ -263,7 +264,7 @@ Its final message is a report, not proof the work is done.
      behind an existing feature flag, is UI-only, medium.
 6. Note which plan-review triggers (step 4) apply. It's provisional: step 4 re-checks
    them against the plan, which often finds a second repo or a rollout step.
-7. Pick the path, unless the user passed `fast`:
+7. Pick the path, unless the user passed `direct`:
    - **direct** when `L` is low or medium and no plan-review trigger looks likely: one
      `opus` builder explores, writes its own plan and implements it in one context
      (see *Direct path*). It skips the handoff, where a separate implementer re-reads
@@ -300,7 +301,7 @@ mention the level in your next status line too:
 - Level: <L>, because <reason | "forced by the user"; add your own pick if it differs>
 - Kind: <UI-only | not UI-only>, because <reason>
 - Plan review: <likely, because <trigger(s)> | unlikely, no trigger>; settled in step 4
-- Path: <direct | split>, because <reason | "forced by `fast`">
+- Path: <direct | split>, because <reason | "forced by `direct`">
 - Repos: <repos>; branch <name>; stacks on <PR, or "nothing">
 - Bypass permissions: <on | off, so the planner (split path) or builder will raise permission prompts from step 3>
 - Autonomy: <steer | checkpoint | auto>, from <the flag | `$SEANCE_AUTONOMY` | the default>
@@ -354,13 +355,13 @@ with one of:
 
 - by default: "If a trigger holds for your plan, stop once `plan.md` is written, before
   any edit, and report which trigger.";
-- when the user passed `fast`: "Don't stop for triggers; name any that hold in your
+- when the user passed `direct`: "Don't stop for triggers; name any that hold in your
   report." If a trigger then holds, say in the status line and the Assessment that the
   plan review was skipped by request, and point the code reviewer (step 6) at the
-  trigger's area as the place to look hardest. With `fast` and `L` high, say in the
+  trigger's area as the place to look hardest. With `direct` and `L` high, say in the
   first status line that this skips the review the high level would otherwise get.
 
-At `steer`, with or without `fast`, close it instead with: "Stop once `plan.md` is
+At `steer`, with or without `direct`, close it instead with: "Stop once `plan.md` is
 written, before any edit, and report which triggers hold." Review it as in step 4 if a
 trigger holds, then stop for the user's approval (*Autonomy*) before resuming it.
 
