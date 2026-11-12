@@ -725,14 +725,19 @@ sleep 20   # after a push, let the new run register so --watch doesn't report th
 gh pr checks <n> -R <owner>/<repo> --watch --interval 20 --fail-fast; rc=$?; echo "checks exit $rc"
 [ $rc -ne 0 ] && exit $rc   # a failure ends the watch now, not after the merge loop
 for i in $(seq 40); do
-  s=$(t gh pr view <n> -R <owner>/<repo> --json state --jq .state) && [ "$s" != OPEN ] && { echo "state $s"; exit 0; }
+  j=$(t gh pr view <n> -R <owner>/<repo> --json state,mergeable --jq '.state+" "+.mergeable') || { sleep 15; continue; }
+  case "$j" in "OPEN CONFLICTING") echo "conflict"; exit 3;; OPEN*) ;; *) echo "state $j"; exit 0;; esac
   sleep 15
 done
 echo "still open after 10 min"; exit 2
 ```
 
 Run it with `run_in_background` (or Monitor), one per PR in parallel. A non-zero
-`checks exit` means a failure to handle below. On Azure DevOps, poll the PR's builds
+`checks exit` means a failure to handle below. Exit 3 means `main` overtook the PR:
+`gh pr checks --watch` never reports a conflict, so the loop checks `mergeable` itself.
+Rebase onto `main` in the worktree, re-verify, `git push --force-with-lease`, and watch
+again. Parallel sessions often land in the same files, so before opening a PR, `git
+fetch` and look for new commits on `main` that touch them. On Azure DevOps, poll the PR's builds
 with `az pipelines runs list` in the same background pattern, or the query the
 workspace docs name.
 
