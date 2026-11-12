@@ -425,10 +425,14 @@ closed:
 t() { perl -e 'alarm shift; exec @ARGV' 60 "$@"; }
 gh pr checks <n> -R <owner>/<repo> --watch --interval 20 --fail-fast; echo "checks exit $?"
 for i in $(seq 40); do
-  s=$(t gh pr view <n> -R <owner>/<repo> --json state --jq .state) && [ "$s" != OPEN ] && { echo "state $s"; break; }
+  j=$(t gh pr view <n> -R <owner>/<repo> --json state,mergeable --jq '.state+" "+.mergeable') || { sleep 15; continue; }
+  case "$j" in "OPEN CONFLICTING") echo "conflict"; break;; OPEN*) ;; *) echo "state $j"; break;; esac
   sleep 15
 done
 ```
+
+`gh pr checks --watch` never reports a merge conflict, so the loop checks `mergeable`
+itself. On `conflict`, rebase onto `main`, re-verify and push.
 
 On a failing check, read the log and classify it:
 
