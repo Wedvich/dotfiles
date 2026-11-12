@@ -72,6 +72,19 @@ steps below don't already name: force-pushing anything but this run's own branch
 a rebase (`--force-with-lease`), deleting anything with uncommitted work, reassigning
 an issue that already has an assignee.
 
+### Running out of usage
+
+On a Séance task, pass the run to a successor session instead of stalling when this
+account's usage is running out (a usage warning, a window close to full), or when the
+user tells you to. Commit everything in every worktree first, then make
+`mcp__seance__pass_to_successor` (load it with ToolSearch if deferred) the run's last
+tool call. Its `record` is all the successor gets besides the branch and any PR:
+the step you're on, what's done and left, the decisions taken and why, and how to
+verify. The successor may run on another machine, so the working directory doesn't
+travel: put what it needs from `plan.md` and the review files in the record. End the turn with one line. Nothing
+done after the push carries over. If it's refused, keep going and say so in the next
+status line. Not `hand_off_task`, which leaves a finished PR to merge.
+
 ### Autonomy
 
 The level says which open questions reach the user. Read it once, in step 1: a flag word
