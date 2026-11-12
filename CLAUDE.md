@@ -91,6 +91,20 @@ pre-compile diagnostics.
 - Unit tests colocated (`foo.test.ts` next to `foo.ts`); integration tests in a
   separate directory mirroring the source tree.
 
+## Waiting
+
+- Waits longer than a few minutes (a clock time, CI, a deploy, a PR): start the wait in the
+  background (`run_in_background` or Monitor) and end the turn; its exit
+  wakes you. Never hold a turn open in a foreground wait — `sleep` chains, polling loops,
+  `gh run watch`, `--watch` flags — the session reads busy and can't be talked to meanwhile.
+- Wait for a known clock time (resume at 09:00) with a one-shot cron (CronCreate), not a
+  polling loop or a long `sleep` (sleep stretches while the machine is suspended).
+- Wait for an event with the tool's own watcher, run in the background: `gh run watch
+  <id> --exit-status`, `gh pr checks <pr> --watch`, a deploy CLI's wait flag. It exits on
+  the event with a meaningful status. Hand-rolled `until …; do sleep; done` loops only
+  where no such watcher exists.
+- Short waits inside a task (a server binding, a port opening) stay in the foreground.
+
 ## Before Finishing
 
 - Lint and format changed files; fix any warnings or errors you introduced.
