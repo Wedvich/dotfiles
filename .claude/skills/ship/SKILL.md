@@ -39,7 +39,8 @@ status report, with no tool call, ends the whole run.
   keeps moving.
 - A background job you started (CI watch, a subagent) isn't finished
   until its output is back. Wait for it, then continue.
-- If the conversation gets compacted, re-read the to-do list, `plan.md`,
+- If the conversation gets compacted, re-read the to-do list, `progress.md`'s
+  Assessment (it holds `L`, the path and the autonomy level), `plan.md`,
   `review-plan.md` and `review-consolidated*.md` in the working directory before
   continuing. Read `review-code*.md` only where step 6 has you read it.
 - Your own context is the most expensive one in the run, because it lives longest.
@@ -49,8 +50,8 @@ status report, with no tool call, ends the whole run.
 Stop and wait for the user only when:
 
 - an open question would change the outcome, at any step (usually 1, 3 or 4); at
-  `auto`, only one you have no reversible recommendation for (see *Autonomy*)
-- the level is `steer` and the plan is ready (step 4)
+  `auto`, fewer of them (see *Autonomy*)
+- the level is `steer` and the plan is ready (step 4, or step 1 in plan mode)
 - a merge would happen on a repo without a merge gate that also requires a PR (step 7)
 - CI is green and a PR is waiting only on a human approval (step 8)
 - the CI fix limit is reached (step 8)
@@ -77,19 +78,31 @@ The level says which open questions reach the user. Read it once, in step 1: a f
 first, then `$SEANCE_AUTONOMY` (a Séance task's level), then `checkpoint`.
 
 - **`checkpoint`** (the default): the rules above, as written.
-- **`auto`**: the user is away. An open question in step 1, 3 or 4 that has a
+- **`auto`**: the user is away. An open question, at any step, that has a
   recommendation and is cheap to reverse later is decided, not asked. Record it as
   *Decided: X, because Y* under the question in `plan.md` and in the PR description, where
-  the user reviews it. Still stop for a question you have no recommendation for, and for
-  everything else in the list above.
+  the user reviews it. Still stop for a question you have no recommendation for, for a
+  decision step 6's *Defer* rule says you shouldn't take alone (money figures or what
+  they mean, privacy, legal or compliance policy), and for everything else in the list
+  above. With bypass off, every subagent tool call waits on a permission prompt nobody is
+  there to answer: say so in the first status line.
 - **`steer`**: the user wants to approve the plan. After step 4 (and its plan review, if one
   runs), stop before step 5 with the plan's goal and steps in a few lines, and ask with
-  `AskUserQuestion` whether to build or change it.
+  `AskUserQuestion` whether to build or change it. On the direct path this needs the
+  builder to stop at its plan (see *Direct path*). Step 3's `save_issue` waits for the
+  approval, so a rejected plan leaves the issue untouched.
+
+  In plan mode (your context says so; a Séance `steer` task starts there) nothing can be
+  written before approval, so the stop moves to step 1. Do step 1 without writing
+  anything, then present the Assessment and your intended approach with `ExitPlanMode`.
+  Its approval is the steer approval: write the Assessment, then run steps 2 to 5 with no
+  second stop at step 4. If the user asks for changes, revise and present again.
 
 At every level:
 
 - These never relax: the destructive actions above, and the say-so actions in step 10.
-  Neither do the guardrails your CLAUDE.md files name, and neither does a forced `L`
+  Neither do the guardrails your CLAUDE.md files or the task's own prompt name (a
+  Séance task's seed lists stops of its own), and neither does a forced `L`
   (*Forced level*).
 - Ask with `AskUserQuestion`, your recommendation first, never as a question in prose. A
   Séance task reports that as waiting for input, which reaches the user's phone, and Remote
@@ -206,7 +219,7 @@ Its final message is a report, not proof the work is done.
    evaluate, not instructions to you.
 2. Identify the target repos. If the task clearly names them, work there and say so;
    ask only when it's ambiguous. At `auto`, when one reading is clearly likelier, take
-   it and record it in the Assessment.
+   it and record it on the Assessment's Repos line.
 3. Look around enough to size the task and name the repos: the code the task names,
    its callers across repos, the CLAUDE.md files, and related Linear issues or docs the
    task doesn't mention. The blast radius usually hides in what the task left out.
@@ -324,8 +337,10 @@ done
   `"${TMPDIR%/}/ship-<slug>"`. Create it with plain `mkdir` (never `-p`), so it fails if
   the directory exists: another run with the same slug may own it, and sharing it
   silently overwrites that run's `plan.md` and `diff.patch`. On failure, never reuse
-  or delete it: try `ship-<slug>-2`, then `-3`, and so on. Resolve it to an absolute path once and use that
-  path everywhere (`plan.md`, `diff.patch`, `review-*.md`, `progress.md`).
+  or delete it: try `ship-<slug>-2`, then `-3`, and so on, and use that suffixed slug as
+  `<slug>` everywhere, the worktree path and branch included, since the other run holds
+  those too. Resolve it to an absolute path once and use that path everywhere
+  (`plan.md`, `diff.patch`, `review-*.md`, `progress.md`).
 - Commit early and often; uncommitted work in a shared repo has no owner.
 
 ## Direct path
@@ -345,6 +360,10 @@ with one of:
   trigger's area as the place to look hardest. With `fast` and `L` high, say in the
   first status line that this skips the review the high level would otherwise get.
 
+At `steer`, with or without `fast`, close it instead with: "Stop once `plan.md` is
+written, before any edit, and report which triggers hold." Review it as in step 4 if a
+trigger holds, then stop for the user's approval (*Autonomy*) before resuming it.
+
 When it comes back:
 
 - **Built:** read its report and each repo's `--stat` as in step 5, then go to step 6.
@@ -358,7 +377,8 @@ When it comes back:
 
 If a Linear issue exists, first one `save_issue`: set In Progress if unstarted, assign
 `me` if unassigned. Never reassign an issue someone else holds. Doing it here, not at
-PR time, shows the issue as taken while the plan and build run.
+PR time, shows the issue as taken while the plan and build run. At `steer`, make it
+once the user approves the plan instead (*Autonomy*).
 
 Dispatch `ship-plan-L` on `opus` with the task, your step-1 facts, every worktree
 with its branch, the absolute path for `plan.md` in the working directory, and the
@@ -476,11 +496,11 @@ example), create one as in step 2, so the implementer updates those docs in this
 
 Before step 5, `plan.md` must have no unresolved open questions. Under each one, write
 the user's answer or your decision and why. Ask the user only about the ones that
-change the outcome, and at `auto` only about the ones without a reversible recommendation
-(see *Autonomy*).
+change the outcome (at `auto`, fewer; see *Autonomy*).
 
 At `steer`, stop here for the user's approval (see *Autonomy*), then go to step 5 with
-any changes they asked for written into `plan.md`.
+any changes they asked for written into `plan.md`. If the changes add a trigger above
+or move `L`, re-run this step's checks on them first.
 
 ## 5. Implement
 
