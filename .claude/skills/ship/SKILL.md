@@ -1,8 +1,7 @@
 ---
 name: ship
-description: Take a task (usually a Linear issue) from assessment to merged PR — sizes it, plans, reviews cross-boundary plans, implements via cheaper subagents, reviews the diff, opens auto-merge PRs, fixes CI until merged, verifies on dev when needed, then routes follow-ups itself.
+description: Take a task (usually a Linear issue) from assessment to merged PR — sizes it, plans, reviews cross-boundary plans, implements via cheaper subagents, reviews the diff, opens auto-merge PRs, fixes CI until merged, verifies on dev when needed, then routes follow-ups itself. Use when the user asks to ship a task end to end ("ship this", "ship LIN-123 now"), with or without the slash; don't start it on your own for ordinary implementation work.
 argument-hint: "[low|medium|high] [direct] [steer|checkpoint|auto] <task description, Linear issue key or URL>"
-disable-model-invocation: true
 model: opus
 effort: medium
 ---
@@ -29,7 +28,7 @@ repo the task touches.
 
 ## How the run flows
 
-The user started `/ship` so they don't have to drive each step. Carry the task from
+The user asked for `/ship` so they don't have to drive each step. Carry the task from
 step 1 through step 10 in one go. This section exists because a turn that ends on a
 status report, with no tool call, ends the whole run.
 
