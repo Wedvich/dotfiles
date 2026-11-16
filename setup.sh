@@ -292,6 +292,7 @@ install_apt_packages() {
   apt_ensure hyperfine
   apt_ensure gpg gnupg
   apt_ensure git-lfs
+  apt_ensure socat
 
   pkg-config --exists openssl || { apt_update_once; echo "Installing libssl-dev..."; sudo apt install -qy libssl-dev; }
 }
@@ -772,6 +773,10 @@ main() {
     manual_steps+=("• Disable Ctrl+Arrow keyboard shortcuts in macOS\n  \\033[2mSystem Settings > Keyboard > Keyboard Shortcuts... > Mission Control\\033[0m")
   elif [[ "$MINIMAL" != true ]]; then
     manual_steps+=("• Install 1Password\n  \\033[2mhttps://1password.com/downloads\\033[0m")
+  fi
+
+  if [[ "$IS_WSL" == true ]] && ! command -v npiperelay.exe >/dev/null 2>&1; then
+    manual_steps+=("• Put npiperelay.exe on the Windows PATH for the 1Password SSH agent bridge\n  \\033[2mhttps://github.com/jstarks/npiperelay/releases\\033[0m")
   fi
 
   if [[ "$_signing_key_changed" == true ]]; then

@@ -9,6 +9,8 @@ start_1pw_relay() {
     rm $SSH_AUTH_SOCK
   fi
   echo "Starting SSH-Agent relay..."
+  # socat can't create the socket in a missing dir and fails silently below
+  mkdir -p "${SSH_AUTH_SOCK:h}"
   # setsid to force new session to keep running
   # set socat to listen on $SSH_AUTH_SOCK and forward to npiperelay which then forwards to openssh-ssh-agent on windows
   (setsid socat UNIX-LISTEN:$SSH_AUTH_SOCK,fork EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
