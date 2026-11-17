@@ -270,6 +270,25 @@ Run it in the background and stop it afterwards. Filter by
 
 ## Any stack
 
+### Polling on one effect, asserting a later one (background step order)
+
+A background operation (a hosted-service tick, a `Task.Run`, a worker) produces several
+effects in order, say a close and then a registry removal. The test polls until the
+first effect shows, then asserts the second at once. A poll that lands between them
+reads the old state. It passes alone, and fails only when the full suite deschedules the
+background thread in the gap.
+
+- **Amplifier:** a hold at the boundary call that produces the first effect, after it
+  is recorded: the test double of the connection, client or sink sleeps
+  (`Thread.Sleep`, gated on an env var so the plain run is unchanged) after counting
+  the call. This gave 10/10 with the original signature, where the plain run gave 0/10.
+- **Fix shape:** poll for the operation's last effect, then assert the earlier ones.
+  Don't reorder product steps to suit the test: an order like close-then-remove is
+  often the contract (a failed close stays registered for a retry). Check by mutation
+  that the new poll still fails when the last effect never happens.
+- **Sweep:** for every poll-then-assert in the suite, ask whether the asserted value is
+  written by the same step the poll waited on, or by a later one.
+
 ### Acceptance under CPU load
 
 ```bash
