@@ -99,10 +99,18 @@ pre-compile diagnostics.
   `gh run watch`, `--watch` flags — the session reads busy and can't be talked to meanwhile.
 - Wait for a known clock time (resume at 09:00) with a one-shot cron (CronCreate), not a
   polling loop or a long `sleep` (sleep stretches while the machine is suspended).
-- Wait for an event with the tool's own watcher, run in the background: `gh run watch
-  <id> --exit-status`, `gh pr checks <pr> --watch`, a deploy CLI's wait flag. It exits on
-  the event with a meaningful status. Hand-rolled `until …; do sleep; done` loops only
-  where no such watcher exists.
+- Wait for an event with the tool's own watcher, run in the background: a deploy CLI's
+  wait flag; for a PR's CI `gh pr checks <pr> --watch -i 30 --fail-fast`, not `gh run
+  watch` (one watcher covers every workflow, on the separate GraphQL budget); for an
+  Actions run with no PR (a dispatch, `main`'s deploy) `gh-run-wait <owner>/<repo> <id>`,
+  or `gh run watch <id> -i 30 --exit-status` where that isn't installed. It exits on the
+  event with a meaningful status. Hand-rolled `until …; do sleep; done` loops only where
+  no such watcher exists, every 30s or slower and with an end.
+- GitHub allows 5000 REST requests an hour per user, shared by every session on every
+  machine. Never poll `gh` faster than every 30s: `gh run watch` defaults to 3s at ~3
+  requests a tick, so a few watchers exhaust it in minutes. On a rate-limit error, stop:
+  `gh api rate_limit --jq .resources.core.reset` is free, so wait until then or report —
+  a retry fails anyway, and GitHub may ban a client that keeps trying.
 - Short waits inside a task (a server binding, a port opening) stay in the foreground.
 
 ## Before Finishing

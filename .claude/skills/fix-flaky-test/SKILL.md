@@ -423,11 +423,11 @@ closed:
 
 ```bash
 t() { perl -e 'alarm shift; exec @ARGV' 60 "$@"; }
-gh pr checks <n> -R <owner>/<repo> --watch --interval 20 --fail-fast; echo "checks exit $?"
-for i in $(seq 40); do
-  j=$(t gh pr view <n> -R <owner>/<repo> --json state,mergeable --jq '.state+" "+.mergeable') || { sleep 15; continue; }
+gh pr checks <n> -R <owner>/<repo> --watch --interval 30 --fail-fast; echo "checks exit $?"
+for i in $(seq 20); do
+  j=$(t gh pr view <n> -R <owner>/<repo> --json state,mergeable --jq '.state+" "+.mergeable') || { sleep 30; continue; }
   case "$j" in "OPEN CONFLICTING") echo "conflict"; break;; OPEN*) ;; *) echo "state $j"; break;; esac
-  sleep 15
+  sleep 30
 done
 ```
 

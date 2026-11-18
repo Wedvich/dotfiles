@@ -105,6 +105,9 @@ link_dotfiles() {
 
       # Exclaves need Claude Code and Firefox, which minimal hosts don't have.
       exclave-browser.sh     "$HOME/.local/bin/exclave-browser"
+
+      # Claude sessions wait on Actions runs with it (CLAUDE.md, "Waiting").
+      gh-run-wait.sh         "$HOME/.local/bin/gh-run-wait"
     )
 
     # Skills and agents need Claude Code too. Agents are linked one file at a

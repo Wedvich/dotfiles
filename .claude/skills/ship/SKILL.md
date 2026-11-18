@@ -735,12 +735,12 @@ open (macOS has no `timeout`, so the limit uses perl):
 ```bash
 t() { perl -e 'alarm shift; exec @ARGV' 60 "$@"; }   # kill a gh call after 60s
 sleep 20   # after a push, let the new run register so --watch doesn't report the old one
-gh pr checks <n> -R <owner>/<repo> --watch --interval 20 --fail-fast; rc=$?; echo "checks exit $rc"
+gh pr checks <n> -R <owner>/<repo> --watch --interval 30 --fail-fast; rc=$?; echo "checks exit $rc"
 [ $rc -ne 0 ] && exit $rc   # a failure ends the watch now, not after the merge loop
-for i in $(seq 40); do
-  j=$(t gh pr view <n> -R <owner>/<repo> --json state,mergeable --jq '.state+" "+.mergeable') || { sleep 15; continue; }
+for i in $(seq 20); do
+  j=$(t gh pr view <n> -R <owner>/<repo> --json state,mergeable --jq '.state+" "+.mergeable') || { sleep 30; continue; }
   case "$j" in "OPEN CONFLICTING") echo "conflict"; exit 3;; OPEN*) ;; *) echo "state $j"; exit 0;; esac
-  sleep 15
+  sleep 30
 done
 echo "still open after 10 min"; exit 2
 ```
@@ -813,7 +813,10 @@ Skip this step when `plan.md`'s *Dev check* section says "none".
 Otherwise, run it now, without asking. It is part of shipping, not a follow-up.
 
 1. Wait for each merged repo's dev deploy to finish (the `main` CI run's deploy job;
-   see the repo's CLAUDE.md for which pipeline deploys where), in the background.
+   see the repo's CLAUDE.md for which pipeline deploys where), in the background, with
+   `gh-run-wait <owner>/<repo> <run-id>` (`gh run watch <run-id> -i 30 --exit-status`
+   where it isn't installed): a deploy can sit at an approval gate for hours, and
+   `gh-run-wait` costs nothing while the run is unchanged.
 2. If a check as written needs a person (a staff login, an interactive sign-in, a
    design tool behind a login), rewrite it to run unattended: a dedicated test account
    with a headless token (see the repo's CLAUDE.md or memory), API calls where they prove the point,
