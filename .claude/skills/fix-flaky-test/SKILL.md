@@ -437,7 +437,8 @@ itself. On `conflict`, rebase onto `main`, re-verify and push.
 On a failing check, read the log and classify it:
 
 - **Caused by this PR** (lint, types, a test the change broke): fix it in the worktree,
-  confirm locally, push.
+  confirm locally, push. A test this PR adds or edits that fails is always caused by
+  this PR, however flaky it looks; never re-run it.
 - **The flake you fixed, failing again:** the fix is incomplete. Treat the CI log as
   new evidence and go back to step 4. A merged "fix" that still flakes is worse than
   an open issue.
