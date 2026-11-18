@@ -289,6 +289,32 @@ background thread in the gap.
 - **Sweep:** for every poll-then-assert in the suite, ask whether the asserted value is
   written by the same step the poll waited on, or by a later one.
 
+### A child SIGKILLed at exec on macOS (hard links of an executable)
+
+A test runs a binary (often the runtime itself, linked under another name so the
+process shows that name) and it exits 128+9 with empty stdout and stderr, before any
+of its own code runs. On macOS, `syspolicyd` checks each exec by reading the new
+process's file at the path the kernel reports for its vnode. For an inode with several
+hard links, that path is whichever link any process looked up last. If that link was
+just deleted, the read fails with ENOENT and syspolicyd kills the process ("Terminating
+process due to Malware rejection"). Any suite that hard-links an installed Mach-O
+binary and removes the link in teardown can kill execs of that binary anywhere on the
+machine, under any name, including its original path. Not seen on Linux. A script's
+links measured immune, because the check reads the interpreter.
+
+- **Amplifier:** a few processes that each loop link a new name to the same inode,
+  then delete it, while the test execs the binary. That killed about 1% of execs; a
+  scratch test calling the helper 1500 times per run failed 10/10.
+- **Fix shape:** never hard-link an installed executable in tests. Use a copy with
+  exactly one name: make it once per machine and binary build, publish it by renaming
+  its directory (so it never has a second name, and a writer that loses a race keeps
+  the winner's copy instead of replacing it), never delete it from a test, and warm it
+  once in setup to pay the first-exec scan. A symlink won't do where the process name
+  matters, because macOS reports the resolved basename. Back it with a structural test
+  that refuses a hard link of the runtime's own path.
+- **Sweep:** every hard link of an executable in test code, and every test that
+  deletes one, not only the helper that failed.
+
 ### Acceptance under CPU load
 
 ```bash
@@ -308,6 +334,11 @@ Run it against the unfixed code too, since it is often green there as well.
   test, with creation stacks, and match the count to the report.
 - **Measure the window.** Log response time against the injected hold, so a green run
   can't come from an injection that never applied.
+- **Who sent a SIGKILL.** When a child dies 128+9 with nothing on stderr, capture the
+  exit code and signal (an exit-code-only error hides it), then on macOS read
+  `/usr/bin/log show --start <t0> --end <t1> --info --predicate 'process ==
+  "syspolicyd"'` around the kill. Use the full path: `log` is a zsh builtin. Match the
+  kill count to the rejection lines.
 - **Two worktrees, one harness.** The failing SHA (or the test restored with
   `git show <sha>^:<path> > old.test.tsx`) next to the fix, under the same command.
 
