@@ -40,6 +40,9 @@ This skill is project-neutral. Everything about how a project works comes from i
 - **Branch name, commit and PR title format**, PR assignee, how a PR links its issue.
   Defaults: `fix-flaky-<slug>`, the format of recent commits on the default branch.
 - **Install, check and test commands**, and how CI selects tests.
+- **Mechanical test checks**: a lint config or a structural test that holds test code
+  to the project's conventions (a test-hygiene check, a layering test). Where one
+  exists, a new convention goes into it (step 8). Default: none.
 - **Worktree location.** Default: `.claude/worktrees/<slug>` in the repo.
 
 `<owner>/<repo>` below is `gh repo view --json nameWithOwner --jq .nameWithOwner`, and
@@ -243,6 +246,13 @@ project, a whole suite under a committed amplifier), and grep for the code patte
 where it isn't (per-test containers, fire-and-forget writes, assertions straight after
 a DOM wait, wall-clock tolerances).
 
+Sweep by mechanism across the whole repo, not by the failing file: every call of the
+primitive that misbehaved (every server restart, every call that opens a pty, every
+one-shot read of a captured log), in every test directory. One fix covered the two
+restarts in its failing file and missed the gap between tests, which flaked for four
+more weeks. Another wrote that no other call had ever hit the error, and a sibling
+call hit it a day later.
+
 Before you act on any new failure the sweep turns up, check that it is genuine. A
 harness can cause its own failures: fake timers once captured the harness's delayed
 `setTimeout` and stranded the scheduler.
@@ -327,7 +337,12 @@ it uses Conventional Commits), with the issue key where the format calls for one
 test of the test code adds little. Put the amplifier and the exact command in the PR
 description, so the failure can be reproduced on demand later. If the fix is a
 convention the next test author has to follow (build every test container through one
-helper), write it in the repo's `CLAUDE.md`.
+helper), make a tool hold it, not prose. Where the pattern can be matched (a raw call
+outside the helper, an exact-count poll, a sub-second real timeout), add a rule to the
+project's mechanical test checks, with the sites that remain recorded as its baseline.
+Only a convention no check can express goes into the repo's `CLAUDE.md`, as one line
+under the principle it serves rather than a paragraph about this flake: prose rules
+written after earlier flakes were broken by the next tests that landed.
 
 **Product-code fix:** commit something that fails deterministically if the mechanism
 comes back, so a regression shows up as a clear red instead of another flake. Past
