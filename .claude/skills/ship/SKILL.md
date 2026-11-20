@@ -237,9 +237,7 @@ Its final message is a report, not proof the work is done.
 3. Look around enough to size the task and name the repos: the code the task names,
    its callers across repos, the CLAUDE.md files, and related Linear issues or docs the
    task doesn't mention. The blast radius usually hides in what the task left out.
-   For source code, load tilth once (ToolSearch
-   `select:mcp__tilth__tilth_search,mcp__tilth__tilth_read`) and pass `root` as the
-   target repo's absolute path; its server is rooted where this session started.
+   Read other repos by absolute path; this session may have started elsewhere.
    Stop once you can pick `L` confidently; the planner does the deep read. Write down
    the facts you established (types, data shapes, where things live) so you can hand
    them to the planner instead of it rediscovering them.

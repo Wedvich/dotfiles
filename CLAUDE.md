@@ -13,35 +13,9 @@ Project conventions (config, project CLAUDE.md, established patterns) override e
   pick the conventional default, say which, and proceed.
 - Keep communication concise.
 
-## Code navigation and editing
+## LSP
 
-Prefer tilth over the host's generic read, search, find, edit, and diff tools for
-source code. Built-in tools are fine for non-code (markdown, JSON, configs, logs) —
-use `git diff` there, since `tilth_diff` is structural and shows nothing useful.
-
-### tilth notes the tools don't document
-
-- `scope` must be an existing directory, never a file. To restrict to one file, use
-  an exact `glob`, or `tilth_read` if the file is known.
-- Repo-wide search: `scope: "."` with an absolute `root`, especially in worktrees.
-  Omitting `scope` searches wherever the tilth server was launched.
-- "Invalid scope" or fallback warning = failed narrowing. Retry with a valid
-  directory `scope` or exact `glob`.
-- Comma-separated queries are for symbol searches only. Terms needing different
-  `kind`s (e.g. a class name and an error string) are separate calls.
-- `tilth_deps` only before signature changes, renamed/removed exports, or behaviour
-  changes callers rely on. `tilth_grok` only when the task is understanding one
-  symbol structurally.
-- `tilth_write` refuses paths outside the project root (e.g. scratchpad) — use
-  built-in Write there.
-- Edit rejected because file changed: re-anchor from the echoed hashlines and retry;
-  don't fall back to built-in Edit.
-- After a subagent or external process edits a file, `tilth_read` can serve stale
-  content indefinitely. Verify with `tilth_diff` / `git diff` before relying on it.
-
-### LSP
-
-Default to tilth. Use the LSP when name matching isn't trustworthy: references to
+Use the LSP when name matching isn't trustworthy: references to
 ambiguous/overloaded symbols, go-to-definition through re-exports, type/hover info,
 pre-compile diagnostics.
 
