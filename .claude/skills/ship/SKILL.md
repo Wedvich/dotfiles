@@ -52,6 +52,7 @@ Stop and wait for the user only when:
 - an open question would change the outcome, at any step (usually 1, 3 or 4); at
   `auto`, fewer of them (see *Autonomy*)
 - the level is `steer` and the plan is ready (step 4, or step 1 in plan mode)
+- plan-review findings need prod data to settle, and a wrong guess couldn't be made safe (step 4)
 - a merge would happen on a repo without a merge gate that also requires a PR (step 7)
 - CI is green and a PR is waiting only on a human approval (step 8)
 - the CI fix limit is reached (step 8)
@@ -193,7 +194,7 @@ format). Every dispatch prompt supplies the rest:
 - **For the code reviewer**, you may name the areas that deserve the closest look.
   Never set a severity or confidence bar ("only serious issues", "be conservative"):
   it reports for coverage and filtering comes after. The plan reviewer is the
-  exception: step 4 gives it a fixed scope and a cap.
+  exception: step 4 gives it a fixed scope.
 
 ### When a subagent comes back
 
@@ -296,8 +297,8 @@ the skill would otherwise change it:
   keep the forced `L` and note your view in the Assessment and the next status line.
   Don't stop to ask unless you'd name something irreversible that `L` is too low to
   catch (the *high* criteria); then ask once.
-- **Plan review** (step 4) follows its triggers as usual, with the forced `L` standing
-  in for the high trigger. Raising `L` to force a review is off.
+- **Plan review** (step 4) follows its triggers as usual. `L` isn't one of them,
+  forced or not.
 - **Failure escalation** (*When a subagent comes back*): the model swaps (`sonnet` →
   `opus`) and same-level redispatches still apply, but never go one level up. Where
   the skill would, stop and ask the user whether to raise `L`.
@@ -370,8 +371,7 @@ with one of:
 - when the user passed `direct`: "Don't stop for triggers; name any that hold in your
   report." If a trigger then holds, say in the status line and the Assessment that the
   plan review was skipped by request, and point the code reviewer (step 6) at the
-  trigger's area as the place to look hardest. With `direct` and `L` high, say in the
-  first status line that this skips the review the high level would otherwise get.
+  trigger's area as the place to look hardest.
 
 At `steer`, with or without `direct`, close it instead with: "Stop once `plan.md` is
 written, before any edit, and report which triggers hold." Review it as in step 4 if a
@@ -380,9 +380,12 @@ trigger holds, then stop for the user's approval (*Autonomy*) before resuming it
 When it comes back:
 
 - **Built:** read its report and each repo's `--stat` as in step 5, then go to step 6.
-- **Stopped at its plan:** review the plan as in step 4 and apply the findings to
-  `plan.md`. Then SendMessage to the same agent: `plan.md` is updated, which steps
-  changed, and that it should now build.
+- **Stopped at its plan:** review the plan as in step 4, confirm and sort the findings,
+  and write `review-plan.md`, but don't edit `plan.md` yourself: the builder wrote it
+  and still holds its context. SendMessage to the same agent with the path to
+  `review-plan.md`. Tell it to work the applied findings into `plan.md`'s steps, each
+  with its must-not-change line, and to watch for the routed ones while it builds. Then
+  it builds.
 - **Failed:** as in *When a subagent comes back*. It's an `opus` agent, so it goes
   one level up.
 
@@ -427,8 +430,9 @@ the defects neither the implementer's tests nor a diff review can see:
   schemas or LLM prompts they hold, e2e suites, scripts, cached payloads.
 - Platform and runtime: behaviour tests can't show, such as iOS/Android WebView,
   Safari, native app shells, SSR and hydration, DI wiring, SDK quirks.
-- Data: the real dev and prod shapes the change meets (existing rows, unique indexes,
-  legacy values), checked against the data where you can.
+- Data: the real shapes the change meets (existing rows, unique indexes, legacy
+  values), checked against dev data where you can. Don't query prod data (see step 4);
+  where prod could differ, put the query that would settle it under *Open questions*.
 - Semantics: where the issue, the design, case files and existing tests disagree on
   what the user should see, money figures above all. An existing test that encodes
   the old answer counts.
@@ -466,18 +470,23 @@ definition, raise `L` (unless forced) or reclassify, and say so.
 
 **Run the plan review only when at least one trigger holds** for the plan as written:
 
-- `L` is high;
 - the steps change two or more deployable repos or services (a repo that deploys
-  nothing doesn't count; see step 1, item 3);
+  nothing doesn't count; see step 1, item 3). A change this task needs in another
+  deployable repo counts even when another session or a follow-up will make it; the
+  plan names it under *Outside the diff*;
 - *Outside the diff* names a rollout order, or a consumer that the steps change
   behaviour for;
-- money figures shown or told to users change how they are computed or worded;
+- money figures shown or told to users change how they are computed or worded, or
+  money that is charged, billed or moved changes how it is computed;
+- the steps change infra or CI/CD config (IaC, pipelines, deploy scripts), which no
+  test or dev check exercises before it runs for real;
 - behaviour depends on a native platform or the WebView, which jsdom tests can't show;
 - the change reads or rewrites existing prod data.
 
-Otherwise skip it and say which way you decided in the status line. Most of what a
-review finds on a single-repo plan is tidying, or bugs the code review in step 6 catches
-anyway; its distinct value is what lies outside the diff.
+Otherwise skip it and say which way you decided in the status line. `L` is not a
+trigger, high or not. Most of what a review finds on a single-repo plan is tidying, or
+bugs the code review in step 6 catches anyway, and the fixes it brings cost extra
+code-review rounds. Its distinct value is what lies outside the diff.
 
 The review has a narrow brief. Dispatch a fresh plan reviewer (no planner context) with
 the task, the path to `plan.md` and these instructions:
@@ -488,21 +497,76 @@ the task, the path to `plan.md` and these instructions:
 - Don't report local code defects, test lists, verification-command polish, line
   references or doc wording: the implementer's checks and the code review cover those.
   The exception is a verification that would pass without proving the goal.
-- Report at most five findings, most consequential first. For each, describe the
-  failure; propose a fix only as a direction, not a design.
+- Report every finding that clears that bar, most consequential first, and nothing
+  below it. For each, describe the failure and cite the evidence: file:line, command
+  output or query result, or for something missing, the consumer's file:line and its
+  absence from the steps. Propose a fix only as a direction, not a design.
+- End with a **Checked** line per *Outside the diff* item: what you checked, and what
+  you couldn't read (a tool that failed to connect, say). No findings is a fine answer
+  when the plan holds, and the Checked lines show it wasn't a blind one.
+- Read dev data where the session has read-only access to it. Never query prod data,
+  even through a connection that is configured. When a finding depends on prod data,
+  report it as a *prod data question*: the query that would settle it, and what each
+  answer would mean for the plan.
 
-Check each finding against the code, and apply the ones that hold to `plan.md` by
-editing the steps they concern. A plan-review fix is where later code reviews found
-most of their bugs, because it changes behaviour next to it that nobody re-checked. So
-give each such step an extra line naming the neighbouring behaviour that must not
-change, and a check for it; the implementer verifies it and step 6 targets it, so it
-adds no round of your own. Don't append an "amendments" section that overrides earlier
-steps: the implementer follows the plan literally, and two versions of a step make it
-reconcile them or read the whole plan twice. Record every finding in `review-plan.md`,
-not in the plan, as applied (with the plan steps it changed) or rejected (with your
-reason): the implementer would read rejected findings as instructions, and step 6
-uses the applied ones. If the review shows `L` was wrong, change it now and say so
-(unless forced; see *Forced level*).
+*Prod data* means records about users or the business in production: databases, logs,
+analytics events. Production configuration (a flag's rollout, a deploy's state, an infra
+setting) isn't, and anyone in the run may read it.
+
+Check each finding before acting on it. Re-read the evidence it cites and confirm the
+premise holds now. A comment, doc or issue saying a flag is off or a path is unused is
+a claim, not evidence, so check the flag or the callers. Don't apply a finding whose
+premise you can't confirm; record it as unconfirmed. For an unconfirmed high-severity
+finding, ask the reviewer once (SendMessage) for its evidence first. Then sort the ones
+that hold, by what fixing them would take:
+
+- **Plan change** (a rollout order, a consumer or repo the steps don't touch, existing
+  data, CI or infra, a verification that would pass without proving the goal, a wrong
+  assumption about unchanged code, or a flaw in the approach itself, such as the wrong
+  layer or owner for a figure, that a fixer couldn't repair after the build without
+  re-planning): apply it to `plan.md` by editing the steps it concerns.
+- **Routed to code review** (a local defect in code the steps will write, which a fixer
+  can repair once the diff exists): leave the plan alone and record it for step 6.
+
+A plan-review fix is where later code reviews found most of their bugs, because it
+changes behaviour next to it that nobody re-checked. That is why only findings that
+need it change the plan. Give each step you change an extra line naming the
+neighbouring behaviour that must not change, and a check for it; the implementer
+verifies it and step 6 targets it, so it adds no round of your own. Don't append an
+"amendments" section that overrides earlier steps: the implementer follows the plan
+literally, and two versions of a step make it reconcile them or read the whole plan
+twice.
+
+Prod data questions, from the reviewer or the planner's *Open questions*:
+
+- First check whether dev data answers them.
+- For the rest, prefer a plan that is safe under either answer: a guard, a safe
+  default, or a dry-run count before a prod rewrite whose result decides whether the
+  rewrite proceeds. That needs no prod read now. At `auto`, take that route and record
+  *Decided*.
+- Ask the user only when no such route exists, or a wrong guess would be irreversible
+  (a rewrite of prod data). Put every question in one ask, naming each query and what
+  each answer would mean.
+- Prod access is never standing. The user arranges temporary read access on this
+  machine, which may mean logging in to a CLI there first. A connection your session
+  opened at start won't pick it up, so use the route the user gives you, and never
+  print the credential.
+- Run only the queries you named, and only aggregate or shape queries: counts,
+  distinct values, which fields exist. Never rows about a person. Record the
+  conclusion, not the result rows.
+- Note in `progress.md` that access is open until the user confirms it's gone, and put
+  that note in a successor's record.
+- If the user says no, write the assumption into *Outside the diff* and make the plan
+  safe under either answer, as above.
+
+Record every finding in `review-plan.md`, not in the plan. Mark each one applied (with
+the plan steps it changed), routed to code review, rejected (with your reason) or
+unconfirmed (with what you couldn't confirm). Record each prod data question there too,
+as answered (with the conclusion), designed around, or declined. The implementer would
+read rejected findings as instructions, and step 6 uses the applied and routed ones.
+List unconfirmed findings and prod-data assumptions at the `steer` stop, in the PR
+description and in the final summary, since nothing else reads them. If the review
+shows `L` was wrong, change it now and say so (unless forced; see *Forced level*).
 
 If *Docs to update* names a repo that has no worktree yet (a workspace hub's docs, for
 example), create one as in step 2, so the implementer updates those docs in this run.
@@ -536,7 +600,10 @@ Dispatch a code reviewer with the paths to `diff.patch` and `plan.md`, and the p
 correctness, edge cases, error paths, security at system boundaries, test quality,
 contract consistency across repos, and adherence to `plan.md`. Where a plan step came
 from a plan-review finding (`review-plan.md` lists them), ask it to look hardest
-there: those fixes are where earlier runs' code reviews found most of their bugs. For
+there: those fixes are where earlier runs' code reviews found most of their bugs. Pass
+the findings routed to code review too: the reviewer checks each against the diff and
+reports it as a finding of its own if it still holds, so it gets fixed, deferred or
+rejected like any other. For
 the model (see the table), re-check the kind against the actual diff first: the
 step-5 `--stat`, plus the hunks of any DTO or server file, to confirm they only add
 display fields. If anything falls outside UI-only, use `opus` and say so in the

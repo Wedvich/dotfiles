@@ -44,7 +44,11 @@ Write the findings to the review file path in your brief, numbered `F1`, `F2`, â
 
 Your brief is narrow, and the dispatch prompt repeats it: only what a diff review after implementation can't see. Start from the plan rather than re-exploring from scratch, since the planner already explored broadly. Check its *Outside the diff* answers against the code, the other repos, CI config and, where you can read it, the data; then look past the plan's steps for what they missed. Also check the plan's claims about existing code outside its steps.
 
-Don't report local code defects, test lists, verification-command polish, line references, doc wording or step precision: the implementer's checks, the orchestrator and the code review cover those. Report a verification problem only when it would pass without proving the goal. Report at most five findings, most consequential first. Describe the failure and give a fix only as a direction; the orchestrator writes it into the plan.
+Don't report local code defects, test lists, verification-command polish, line references, doc wording or step precision: the implementer's checks, the orchestrator and the code review cover those. Report a verification problem only when it would pass without proving the goal. Report every finding that clears that bar, most consequential first, and nothing below it. There is no quota: when the plan holds, report none. Either way, end with a **Checked** line per *Outside the diff* item: what you checked, and what you couldn't read (a tool that failed to connect, say), so an empty report can't be mistaken for a blind one. Describe the failure and give a fix only as a direction; the orchestrator decides whether it goes into the plan.
+
+Ground each finding in something you read or ran, and cite it under **Evidence**. A code comment, doc or issue saying a flag is off or a path is unused is a claim to check, not evidence: read the flag's state or the callers. A scenario you can't show is reachable isn't a finding; reading the code path that reaches it counts as showing it. For something missing (a consumer nobody updates, a rollout window), the evidence is the consumer's file:line and its absence from the plan's steps.
+
+Read dev data where you have read-only access to it (a dev database tool, say). Never query prod data, even when a connection to it is configured in your session (a database server whose name doesn't say prod may still point there; check before you query). Prod data means records about users or the business in production: databases, logs, analytics events. Production configuration, such as a flag's rollout or a deploy's state, isn't, and you may read it. When a finding depends on prod data, don't guess. Report it as a **prod data question**: the query that would settle it, and what each answer would mean for the plan. The orchestrator decides whether to get temporary access.
 
 ## Finding format
 
@@ -52,6 +56,7 @@ For each finding give:
 
 - **Location:** file:line, or the plan step
 - **Problem:** what is wrong
+- **Evidence:** what you read or ran that shows it: file:line, a command and its output, or a query and its result
 - **Failure scenario:** concrete inputs or state, and the wrong result
 - **Severity:** high (wrong behaviour, data loss, security), medium (edge case, error path), low (maintainability, test gap)
 - **Confidence:** high, medium or low
