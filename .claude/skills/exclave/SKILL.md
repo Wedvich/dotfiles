@@ -22,7 +22,7 @@ Each piece: check first, skip if already in the target state, report skips. So r
 | Piece | Add | Remove |
 |---|---|---|
 | Dirs `~/.claude-<exclave>/{skills,agents}`, `~/<exclave>` | `mkdir -p` | Leave alone (step 4) |
-| `~/.claude-<exclave>/settings.json` | If missing: `cp ~/.claude/settings.json` there; never overwrite | Leave alone |
+| `~/.claude-<exclave>/settings.json` | If missing: `cp ~/.claude/settings.json` there; never overwrite (`setup.sh` keeps its managed keys in sync) | Leave alone |
 | User skill and agent links (B) | Per (B) | Leave alone |
 | User-scope MCP servers (C) | Per (C) | Leave alone |
 | `~/.gitconfig_<exclave>` | If missing: create with commented `[user]` stub (name/email); never overwrite | Leave alone |

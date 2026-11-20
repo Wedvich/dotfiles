@@ -161,8 +161,20 @@ link_exclave_claude() {
   done
 }
 
+# Exclaves get the same managed keys: /exclave copies settings.json only at
+# creation, so later changes here would otherwise never reach them.
 configure_claude() {
-  local settings="$HOME/.claude/settings.json"
+  apply_claude_settings "$HOME/.claude"
+  [ -r "$HOME/.exclaves" ] || return 0
+  local name
+  for name in ${(f)"$(<"$HOME/.exclaves")"}; do
+    [ -d "$HOME/.claude-$name" ] && apply_claude_settings "$HOME/.claude-$name"
+  done
+  return 0
+}
+
+apply_claude_settings() {
+  local settings="$1/settings.json"
 
   local schema='"https://json.schemastore.org/claude-code-settings.json"'
 
@@ -181,7 +193,7 @@ configure_claude() {
     }
   ]'
 
-  mkdir -p "$HOME/.claude"
+  mkdir -p "$1"
   # Guard against a missing OR malformed file: either would break every jq call
   # below, and a corrupt file would otherwise leave the run stuck on the same
   # parse error forever. Back up anything unparseable before recreating it.
@@ -292,6 +304,7 @@ install_apt_packages() {
 
   apt_ensure cc build-essential
   apt_ensure pkg-config
+  apt_ensure rg ripgrep
   apt_ensure hyperfine
   apt_ensure gpg gnupg
   apt_ensure git-lfs
