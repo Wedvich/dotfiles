@@ -318,10 +318,14 @@ links measured immune, because the check reads the interpreter.
 ### Acceptance under CPU load
 
 ```bash
-trap 'kill $(jobs -p) 2>/dev/null' EXIT
-for i in $(seq "$(getconf _NPROCESSORS_ONLN)"); do (while :; do :; done) & done
+pids=()
+for i in $(seq "$(getconf _NPROCESSORS_ONLN)"); do (while :; do :; done) & pids+=($!); done
+trap 'kill "${pids[@]}" 2>/dev/null' EXIT
 # run the spec N times alongside the full suite here
 ```
+
+Track the PIDs explicitly: in zsh `$(jobs -p)` runs in a subshell with no jobs, so a
+`kill $(jobs -p)` trap kills nothing and the loops outlive the shell.
 
 Run it against the unfixed code too, since it is often green there as well.
 
