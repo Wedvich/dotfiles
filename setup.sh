@@ -209,6 +209,7 @@ apply_claude_settings() {
   # Idempotent: only rewrite when the desired config isn't already applied.
   if jq --argjson sc "$schema" --argjson sl "$status_line" --argjson nf "$notification" -e \
     '.["$schema"] == $sc and .env.USE_BUILTIN_RIPGREP == "0"
+      and .env.CLAUDE_CODE_DISABLE_SHIP == "1"
       and .tui == "fullscreen" and .skipDangerousModePermissionPrompt == true
       and .remoteControlAtStartup == true
       and .statusLine == $sl and .hooks.Notification == $nf
@@ -219,8 +220,11 @@ apply_claude_settings() {
   show_once claude "Configuring Claude Code..."
   local tmp=$(mktemp)
   # Keep "$schema" as the first key by rebuilding the object with it up front.
+  # CLAUDE_CODE_DISABLE_SHIP: Claude Code's built-in /ship can't be shadowed, so
+  # while it's on, the /ship skill linked from this repo never loads.
   jq --argjson sc "$schema" --argjson sl "$status_line" --argjson nf "$notification" \
-    '.env.USE_BUILTIN_RIPGREP = "0" | .tui = "fullscreen"
+    '.env.USE_BUILTIN_RIPGREP = "0" | .env.CLAUDE_CODE_DISABLE_SHIP = "1"
+      | .tui = "fullscreen"
       | .skipDangerousModePermissionPrompt = true
       | .remoteControlAtStartup = true
       | .statusLine = $sl | .hooks.Notification = $nf
