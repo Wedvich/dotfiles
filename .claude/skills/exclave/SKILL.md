@@ -27,7 +27,7 @@ Each piece: check first, skip if already in the target state, report skips. So r
 | User-scope MCP servers (C) | Per (C) | Leave alone |
 | `~/.gitconfig_<exclave>` | If missing: create with commented `[user]` stub (name/email); never overwrite | Leave alone |
 | `~/.gitconfig` block (A) | Append | Delete exactly (A) |
-| Firefox profile `<exclave>` | `~/.local/bin/exclave-browser --create-profile <exclave>` (skips an existing one) | Leave alone |
+| Firefox profile `<exclave>` with 1Password | `~/.local/bin/exclave-browser --create-profile <exclave>` (skips an existing profile, still adds 1Password if missing) | Leave alone |
 | `~/.exclaves` line exactly `<exclave>` | Append (create the file if missing) | Delete that line only |
 
 (A)
@@ -88,5 +88,5 @@ Remove never deletes data on its own. The dirs hold repos and the account's logi
 
 ## 5. Finish
 
-- Add: tell me to fill in `~/.gitconfig_<exclave>`, open a new shell, and run `claude` + `/login` inside `~/<exclave>`. The login page opens in the exclave's Firefox profile.
+- Add: tell me to fill in `~/.gitconfig_<exclave>`, open a new shell, and run `claude` + `/login` inside `~/<exclave>`. The login page opens in the exclave's Firefox profile, where I sign in to 1Password once.
 - Remove: tell me to open a new shell. Shells already inside `~/<exclave>` keep the old env vars until they `cd`.
